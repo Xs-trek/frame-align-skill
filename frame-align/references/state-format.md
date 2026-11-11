@@ -89,13 +89,14 @@ window.FRAME_ALIGN_STATE = {
 - `status`：`confirmed`（已确认）、`open`（待定）、`disputed`（有分歧，含义见 `discipline.md`）。
 - `stale`：`true` 表示它依赖的文件变了、尚未重新确认。它与状态并存，已确认的节点也可能依据已变。
 - `parent`：可选。上一级节点的编号，框架有层级时用。
+- `figure`：可选。这个节点的图，他点开节点时看到。
 
 ### 提议
 
 - `move`：`restate`、`diverge`、`fill`、`challenge`、`converge`、`explain`。不在页面上显示，但决定卡片上出现哪些标记。
 - `kind`：省略表示这是你的看法，绝大多数提议如此。只有两种需要写：`fact`，同时带 `source`；`decision`，同时带 `options`。凭记忆的说法在 `source` 里写明凭记忆。
 - `title`、`text`、`detail`：标题一句话，可省；`text` 是一两句的正文；`detail` 放更长的内容。把内容分到这三处，页面才能排出主次。
-- `figure`：可选，一段 SVG。
+- `figure`：可选，一张图，SVG 或一段 HTML。节点和说明块也可以带。写法见 `page-contract.md` 的"图"一节。
 - `options`：每项有 `label`，可带 `note`（一句说明）或 `points`（逐项比较的维度）。`recommend` 写你推荐的那一项的 `label`，`reason` 写理由。
 - `shown`：`false` 表示先收起，他想看时再展开。省略等于展开。
 - 编号：提议是 `p轮次-序号`，代定是 `d轮次-序号`，节点是 `n序号`。全程不重复，回传靠它对应。

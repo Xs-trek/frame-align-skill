@@ -70,8 +70,13 @@ h2 .sub{font-weight:400;color:var(--ink3);letter-spacing:0;margin-left:auto;font
 .clamp.open{max-height:none} .clamp.open::after{display:none}
 .more{margin-top:4px}
 .source{margin-top:8px;font-size:12.5px;color:var(--ink3)}
-.figure{margin:10px 0 0;padding:10px;background:var(--sunken);border-radius:8px;overflow:auto;color:var(--ink)}
-.figure svg{max-width:100%;height:auto;display:block;margin:0 auto}
+/* Figures are always drawn on light paper, so a drawing with its own colors stays readable in the dark theme too. */
+.figure{margin:10px 0 0;padding:12px;background:#fbfaf6;color:#1d1c1a;border:1px solid var(--line);border-radius:8px;overflow:auto}
+.figure img{max-width:100%;height:auto;display:block;margin:0 auto}
+.figure.html{padding:0;overflow:hidden}
+.figure iframe{display:block;width:100%;height:220px;border:0;background:#fbfaf6}
+.figure.fail{font-size:13px;color:#8b8880}
+pre{font:13px/1.55 ui-monospace,Consolas,"SF Mono","Sarasa Mono SC","Noto Sans Mono CJK SC",monospace;background:var(--sunken);padding:10px 12px;border-radius:8px;overflow:auto;margin:.4em 0;white-space:pre}
 
 .options{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:12px}
 .opt{text-align:left;background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:10px 12px;display:block;width:100%}
@@ -159,7 +164,7 @@ zh:{brand:"frame-align",round:"第 {n} 轮",anchor:"你的目标",edit:"修改",
  unchanged:"与上一轮相同",background:"你的技术背景",backgroundPh:"方便的话说说你做过什么、用过什么，不说也行",
  zoneDecide:"需要你定的",zoneTell:"我告诉你的",zoneDecided:"我先定了的",zoneDecidedSub:"小事，随时可以收回",hidden:"还有 {n} 条没展开",
  framework:"框架现状",confirmed:"已确认",open:"待定",disputed:"有分歧",stale:"依据已变",reopen:"重开",notePh:"备注",
- source:"来源",recommend:"推荐",pick:"选这个",expand:"展开",collapse:"收起",
+ source:"来源",recommend:"推荐",pick:"选这个",expand:"展开",collapse:"收起",figureFail:"这张图没能画出来，请告诉 agent。",
  keep:"留着",drop:"不要",more:"多来点",accept:"接受",reject:"不接受",explain:"解释",verify:"去核实",wrong:"不对",take_over:"我来定",unclear:"还是没懂",
  feedback:"这一轮整体怎么样",overallPh:"还有什么想说的：疑问、不满、想换的方向",next:"下一步",again:"再来一轮",enough:"灵感够了",exit:"框架成立",
  too_much:"输出太多",too_little:"输出太少",too_hard:"太难懂",off_track:"跑偏了",too_slow:"进度太慢",too_fast:"进度太快",
@@ -175,7 +180,7 @@ en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"D
  unchanged:"Same as last round",background:"Your background",backgroundPh:"Optional: what you have built or used before",
  zoneDecide:"Needs your decision",zoneTell:"What I am telling you",zoneDecided:"Already decided for you",zoneDecidedSub:"Small things. Take any of them back.",hidden:"{n} more not expanded",
  framework:"Framework so far",confirmed:"Confirmed",open:"Open",disputed:"Disputed",stale:"Basis changed",reopen:"Reopen",notePh:"Note",
- source:"Source",recommend:"Recommended",pick:"Choose",expand:"Show more",collapse:"Show less",
+ source:"Source",recommend:"Recommended",pick:"Choose",expand:"Show more",collapse:"Show less",figureFail:"This figure could not be drawn. Tell the agent.",
  keep:"Keep",drop:"Drop",more:"More like this",accept:"Accept",reject:"Reject",explain:"Explain",verify:"Verify",wrong:"Not right",take_over:"I will decide",unclear:"Still unclear",
  feedback:"How was this round overall",overallPh:"Anything else: questions, complaints, a different direction",next:"Next",again:"Another round",enough:"Enough ideas",exit:"Framework holds",
  too_much:"Too much output",too_little:"Too little output",too_hard:"Too hard to follow",off_track:"Off track",too_slow:"Too slow",too_fast:"Too fast",
@@ -203,13 +208,18 @@ function inline(s){
   return esc(s).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\s][^*]*)\*/g,"$1<em>$2</em>");
 }
-var LI=/^\s*([-*•]|\d+[.)、])\s+/, TR=/^\s*\|.*\|\s*$/;
+var LI=/^\s*([-*•]|\d+[.)、])\s+/, TR=/^\s*\|.*\|\s*$/, FENCE=/^\s*```/;
 function md(src){
   if(src==null||src==="") return "";
   var ls=String(src).replace(/\r/g,"").split("\n"), out=[], i=0;
   while(i<ls.length){
     var ln=ls[i];
     if(!ln.trim()){i++;continue;}
+    if(FENCE.test(ln)){
+      var code=[]; i++;
+      while(i<ls.length && !FENCE.test(ls[i])){code.push(ls[i]);i++;}
+      i++; out.push("<pre>"+esc(code.join("\n"))+"</pre>"); continue;
+    }
     if(LI.test(ln)){
       var ord=/^\s*\d/.test(ln), items=[];
       while(i<ls.length && LI.test(ls[i])){items.push("<li>"+inline(ls[i].replace(LI,""))+"</li>");i++;}
@@ -228,24 +238,54 @@ function md(src){
       out.push(h+"</table>"); continue;
     }
     var para=[];
-    while(i<ls.length && ls[i].trim() && !LI.test(ls[i]) && !TR.test(ls[i])){para.push(inline(ls[i]));i++;}
+    while(i<ls.length && ls[i].trim() && !LI.test(ls[i]) && !TR.test(ls[i]) && !FENCE.test(ls[i])){para.push(inline(ls[i]));i++;}
     out.push("<p>"+para.join("<br>")+"</p>");
   }
   return out.join("");
 }
-function svgFigure(src){
-  try{
-    var doc=new DOMParser().parseFromString(String(src),"image/svg+xml"), el=doc.documentElement;
-    if(!el || el.nodeName.toLowerCase()!=="svg" || doc.querySelector("parsererror")) return null;
-    el.querySelectorAll("script,foreignObject,iframe,a").forEach(function(n){n.remove();});
-    el.querySelectorAll("*").forEach(function(n){
-      Array.prototype.slice.call(n.attributes).forEach(function(a){
-        if(/^on/i.test(a.name) || /javascript:/i.test(a.value) || (/href$/i.test(a.name) && !/^#/.test(a.value))) n.removeAttribute(a.name);
-      });
-    });
-    return document.importNode(el,true);
-  }catch(e){return null;}
+/* ---------- figures ----------
+   A figure is whatever the model drew: an SVG, or a fragment of HTML.
+   Neither can touch this page. An SVG is shown as an image, so its styles
+   and scripts stay inside it. HTML runs in a sandboxed frame of its own. */
+var FIGS={}, FIGN=0;
+var PAPER="html,body{margin:0;background:#fbfaf6;color:#1d1c1a;font:15px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC',sans-serif}"
+  +"body{padding:12px}img,svg,canvas,video{max-width:100%}table{border-collapse:collapse}th,td{padding:4px 10px;border-bottom:1px solid #e3e0d6;text-align:left}";
+var REPORT="(function(){function s(){var b=document.body;if(b)parent.postMessage({faHeight:Math.max(b.scrollHeight,b.offsetHeight)},'*');}"
+  +"addEventListener('load',s);if(window.ResizeObserver&&document.body)new ResizeObserver(s).observe(document.body);s();setTimeout(s,300);})();";
+function figBox(src){
+  if(src==null || !String(src).trim()) return "";
+  var k="f"+(FIGN++); FIGS[k]=String(src).trim();
+  return '<div class="figure" data-fig="'+k+'"></div>';
 }
+function mountFigures(root){
+  root.querySelectorAll("[data-fig]").forEach(function(box){
+    var src=FIGS[box.getAttribute("data-fig")]; box.removeAttribute("data-fig");
+    if(/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(src)){
+      try{
+        var doc=new DOMParser().parseFromString(src,"image/svg+xml"), el=doc.documentElement;
+        if(el && el.nodeName.toLowerCase()==="svg" && !doc.querySelector("parsererror")){
+          if(!el.getAttribute("xmlns")) el.setAttribute("xmlns","http://www.w3.org/2000/svg");
+          var w=parseFloat(el.getAttribute("width")), h=parseFloat(el.getAttribute("height"));
+          if(!el.getAttribute("viewBox") && w>0 && h>0) el.setAttribute("viewBox","0 0 "+w+" "+h);
+          var img=new Image(); img.alt="";
+          if(!(w>0) || /%$/.test(el.getAttribute("width")||"")) img.style.width="100%";
+          img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(new XMLSerializer().serializeToString(el));
+          box.appendChild(img); return;
+        }
+      }catch(e){}
+      box.classList.add("fail"); box.textContent=t("figureFail"); return;
+    }
+    var f=document.createElement("iframe");
+    f.setAttribute("sandbox","allow-scripts"); f.setAttribute("title","figure");
+    f.srcdoc='<!doctype html><meta charset="utf-8"><style>'+PAPER+"</style>"+src+"<scr"+"ipt>"+REPORT+"</scr"+"ipt>";
+    box.classList.add("html"); box.appendChild(f);
+  });
+}
+window.addEventListener("message",function(e){
+  var h=e.data && e.data.faHeight; if(!(h>0)) return;
+  var fr=document.querySelectorAll(".figure iframe");
+  for(var i=0;i<fr.length;i++) if(fr[i].contentWindow===e.source){fr[i].style.height=Math.min(Math.ceil(h),1600)+"px"; break;}
+});
 
 /* ---------- response state ---------- */
 var proposals=(S.proposals||[]), nodes=(S.nodes||[]), delegated=(S.delegated||[]);
@@ -291,7 +331,7 @@ function card(p){
   if(p.title) h+="<h3>"+inline(p.title)+"</h3>";
   h+='<div class="text">'+md(p.text)+"</div>";
   if(p.detail) h+='<div class="detail clamp" data-clamp>'+md(p.detail)+"</div>";
-  if(p.figure) h+='<div class="figure" data-figure="'+esc(p.id)+'"></div>';
+  h+=figBox(p.figure);
   if(type==="decision"){
     var opts=p.options||[], keys=[];
     opts.forEach(function(o){if(o && o.points) Object.keys(o.points).forEach(function(k){if(keys.indexOf(k)<0) keys.push(k);});});
@@ -395,7 +435,7 @@ function render(){
     if(sec.component==="delegated"){ if(delegated.length && !placed.delegated){h+=delegatedBlock(sec); placed.delegated=1;} return; }
     if(sec.component==="note"){
       h+=(sec.title?section("",esc(sec.title),null,sec.hint?esc(sec.hint):"",""):"")
-        +'<div class="block">'+md(sec.text)+(sec.figure?'<div class="figure" data-secfig="'+si+'"></div>':"")+"</div>";
+        +'<div class="block">'+md(sec.text)+figBox(sec.figure)+"</div>";
       return;
     }
     var list=(sec.items||[]).map(function(id){return byId[id];}).filter(function(p){return p && !used[p.id];});
@@ -430,16 +470,7 @@ function render(){
     +t(MODE==="server"?"submit":MODE==="picker"?"saveFile":"copy")+"</button></div></div>";
   app.innerHTML=h;
 
-  proposals.forEach(function(p){
-    if(!p.figure) return;
-    var box=app.querySelector('[data-figure="'+cssq(p.id)+'"]'), el=svgFigure(p.figure);
-    if(box){ if(el) box.appendChild(el); else box.remove(); }
-  });
-  (Array.isArray(S.sections)?S.sections:[]).forEach(function(sec,si){
-    if(!sec || !sec.figure) return;
-    var box=app.querySelector('[data-secfig="'+si+'"]'), el=svgFigure(sec.figure);
-    if(box){ if(el) box.appendChild(el); else box.remove(); }
-  });
+  mountFigures(app);
   app.querySelectorAll("[data-clamp]").forEach(function(el){
     if(el.scrollHeight>el.clientHeight+6){
       el.classList.add("long");
@@ -561,9 +592,9 @@ function openNode(btn,id){
   btn.setAttribute("aria-expanded","true");
   var p=document.createElement("div"); p.className="nodepanel";
   p.innerHTML='<h3>'+esc(n.title)+' <span class="status '+esc(n.status)+'">'+t(n.status)+"</span>"+(n.stale?' <span class="status" style="background:var(--stale-soft);color:var(--stale)">'+t("stale")+"</span>":"")+"</h3>"
-    +"<div>"+md(n.body)+"</div>"+(n.note?'<div class="source">'+inline(n.note)+"</div>":"")
+    +"<div>"+md(n.body)+"</div>"+figBox(n.figure)+(n.note?'<div class="source">'+inline(n.note)+"</div>":"")
     +'<div class="acts">'+(n.status==="confirmed"?'<button type="button" class="pill" data-act="reopen" data-id="'+esc(id)+'" aria-pressed="'+!!R.reopen[id]+'">'+t("reopen")+"</button>":"")+noteBox("node",id)+"</div>";
-  btn.insertAdjacentElement("afterend",p); grow(p.querySelector("textarea"));
+  btn.insertAdjacentElement("afterend",p); mountFigures(p); grow(p.querySelector("textarea"));
 }
 function done(msg){submitted=true; var pr=document.getElementById("prog"); if(pr) pr.textContent=msg;}
 function openManual(msg){

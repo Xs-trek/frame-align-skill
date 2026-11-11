@@ -45,7 +45,8 @@ The skill covers the framework loop and rework. It does not manage implementatio
 - Every card has marks that fit it and a note box. Marks cover the cheap decisions; notes carry what actually changes direction.
 - A row of optional whole-round feedback: too much output, too little output, too hard to follow, off track, too slow, too fast.
 - The page grows with the framework. The first page is the lightest one.
-- The shell and the components are fixed: cards, comparison tables, numbered steps, a framework map as tiles or a tree, notes with SVG figures. Which of them appear, in what order and with what content is up to the agent, written as data. The agent never writes HTML.
+- The shell and the components are fixed: cards, comparison tables, numbered steps, a framework map as tiles or a tree, notes. Which of them appear, in what order and with what content is up to the agent, written as data. The agent does not write the page.
+- The agent can draw. A card, a note or a framework part can carry a figure: an SVG, or a fragment of HTML with its own styles and scripts. Figures are isolated from the page, so whatever a model draws cannot break or read it, and they are shown on light paper in both themes. Text fields also take code blocks for ASCII diagrams and trees.
 - Results go to a file, not into the user's prompt. The conversation stays for what the user wants to say in their own words.
 
 ### Presets
