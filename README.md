@@ -67,6 +67,54 @@ The skill treats this first as a problem with the agent's output: show less, sep
 
 It also asks the agent not to flatter and not to hedge: keep facts and opinions apart, re-check when challenged instead of yielding or insisting, give a clear recommendation, and verify rather than add disclaimers.
 
+## Using the page
+
+The agent gives you a local address. Open it, respond to what you care about, and press **Submit**. Nothing is required: anything you leave untouched simply means you have no opinion on it yet.
+
+### Top of the page
+
+| Control | What it does |
+|---|---|
+| **Your goal** · Edit | Your own words, pinned as the goal. Press Edit to rewrite it, then Done. Only you can change it. |
+| The tinted line under the goal | What the agent read from your last round, what it changed, and what this round is for. Read only. |
+| **What I understood** · Edit it where it is wrong | The agent's restatement of your need. Rewrite it directly if it is off. When nothing changed since last round it is folded into one line you can open. |
+| **Your background** | First round only, optional. Click the experience chips that apply, or type a line. |
+
+### Cards
+
+Every card has a note box. Type anything there: a reason, a correction, a condition. Marks handle the cheap decisions; notes are where direction changes.
+
+| Card | Controls | Effect |
+|---|---|---|
+| A decision for you | Click an option block, or **Choose** under a column of the comparison table. Click again to clear. The recommended option carries a badge, with the reason below. | The matching part of the framework becomes confirmed. |
+| An idea | **Keep**, **Drop**, **More like this** | Keep makes it a candidate part of the framework. More like this steers the next round in that direction. |
+| A suggestion | **Accept**, **Reject** | Accept merges it into the framework. Reject leaves it out and is logged. |
+| A fact, shown with its source | **Not right** | The agent re-checks and reports what it found. |
+| An explanation | **Still unclear** | The agent explains again in a different way. |
+| Most cards | **Explain**, **Verify** | Explain asks for the reasoning. Verify tells the agent this point matters and it should check its basis. |
+
+Accept and Reject exclude each other, as do Keep and Drop. Other marks can be combined. Long detail text is partly folded; **Show more** opens it.
+
+### Other areas
+
+| Control | What it does |
+|---|---|
+| **N more not expanded** | Lower-priority items the agent held back. Open it if you want them. Whether you opened it is recorded, so the agent learns how much you want to see. |
+| **Already decided for you** · I will decide | Small things the agent settled on its own. Press I will decide on any of them to take it back; it returns next round as a decision for you. |
+| **Framework so far** | A bar showing how many parts are confirmed, open or disputed, then one tile per part. Click a tile to read it and leave a note. **Reopen** turns a confirmed part back to open. A "Basis changed" flag means a file it relied on has changed. |
+| **How was this round overall** | Six optional chips: too much output, too little output, too hard to follow, off track, too slow, too fast. The agent adjusts the next round accordingly. |
+| The large text box | Anything not covered above: questions, complaints, a different direction. |
+| **Next** | Another round continues. Enough ideas tells the agent to stop offering directions and start filling in and narrowing down. Framework holds starts the exit check. |
+| **Notes about you** | What the agent has observed about how you work, which it uses to adjust what it shows. Edit anything that is wrong. |
+
+### Submitting
+
+- **Submit** saves your responses to `.frame-align/returns/round-N.txt`. Then go back to the conversation and say so, in your own words, adding anything you like. The agent reads the file itself.
+- The bar at the bottom shows how many cards you have responded to. You can submit again in the same round; the last submission wins.
+- After you submit, leave the page open. It refreshes by itself when the next round is ready.
+- What you fill in is kept in the browser until the round changes, so a reload does not lose it.
+- **Manual copy (fallback)** at the very bottom is only for the case where saving fails.
+
 ## Install
 
 Copy the `frame-align/` folder into your agent's skills directory.
