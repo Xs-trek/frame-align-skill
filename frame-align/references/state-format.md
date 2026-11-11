@@ -4,30 +4,33 @@
 
 | 文件 | 用途 |
 |---|---|
-| `state.json` | 当前状态。页面由它生成，你靠它知道哪条变了 |
+| `state.js` | 当前状态。页面直接读它，你靠它知道哪条变了 |
 | `log.md` | 决策日志，只追加 |
 | `observations.md` | 对用户行为的观察和他明说的要求，他可见可改 |
 | `rework.md` | 内容填充阶段记下的待回炉事项 |
-| `returns/round-N.txt` | 每轮回传的原文 |
-| `pages/round-N.html` | 每轮的页面 |
+| `returns/round-N.txt` | 每轮的回传，由页面写入 |
 
-框架文档不放在这里。它要让人和后续的 agent 都看得见，默认是工作目录下的 `framework/framework.md`，位置可由用户指定，记在 `state.json` 的 `doc_path` 里。
+框架文档不放在这里。它要让人和后续的 agent 都看得见，默认是工作目录下的 `framework/framework.md`，位置可由用户指定，记在状态的 `doc_path` 里。
 
-第一次创建目录时告诉用户一句：值得纳入版本管理的是 `state.json`、`log.md`、`rework.md` 和框架文档；`pages/` 与 `returns/` 会越积越多，可以忽略；`observations.md` 记的是关于他本人的观察，是否纳入由他定。
+第一次创建目录时告诉用户一句：值得纳入版本管理的是 `state.js`、`log.md`、`rework.md` 和框架文档；`returns/` 会越积越多，可以忽略；`observations.md` 记的是关于他本人的观察，是否纳入由他定。
 
-原则：需要被程序读写、需要稳定编号的，用 JSON；需要直接进入你的上下文、需要用户手改的，用文本。JSON 的外壳只有少数几个字段，正文一律是自由文本，不要为了套格式而削掉内容。
+原则：需要被页面读取、需要稳定编号的，放进状态；需要直接进入你的上下文、需要用户手改的，用文本。状态的外壳只有少数几个字段，正文一律是自由文本，不要为了套格式而削掉内容。
 
-## state.json
+## state.js
 
-```json
-{
+状态是一个 JSON 对象，前面加一句赋值，这样直接打开的页面也能读到它：
+
+```js
+window.FRAME_ALIGN_STATE = {
   "version": 1,
   "phase": "framing",
   "round": 3,
+  "lang": "zh",
   "anchor": "用户的原话，原样",
   "preset": "seed",
   "doc_path": "framework/framework.md",
   "understanding": "你用自己的话写的整体理解，一段。变了才改",
+  "show_understanding": true,
   "this_round": "从上一轮反馈里读到了什么、因此改了什么；这一轮打算做什么",
   "nodes": [
     { "id": "n3", "title": "换班流程", "body": "自由文本，写清这个节点目前定成什么样",
@@ -35,50 +38,74 @@
   ],
   "proposals": [
     { "id": "p3-1", "move": "diverge", "node": "n3",
-      "text": "换班不走审批，双方互相确认后直接生效，只通知负责人。",
-      "shown": true, "mark": null, "note": "" },
+      "text": "换班时可以附一句理由，负责人收到的通知里直接带上。" },
     { "id": "p3-2", "move": "converge", "kind": "decision", "node": "n5",
-      "text": "先做成网页还是小程序？", "options": ["网页", "小程序"],
-      "recommend": "网页：团队十几个人，发个链接就能用，不用等审核",
-      "shown": true, "mark": null, "note": "" },
+      "title": "先做成网页还是小程序？",
+      "text": "两种都能满足现在的功能，差别在上线速度和通知方式。",
+      "options": [
+        { "label": "网页", "note": "发个链接就能用，不用等审核" },
+        { "label": "小程序", "note": "通知直接到微信；每次改动都要过审核" }
+      ],
+      "recommend": "网页",
+      "reason": "团队只有十几个人，先让大家用起来更要紧。" },
     { "id": "p3-3", "move": "challenge", "kind": "fact", "node": "n4",
-      "text": "现有的数据库里没有用户表。", "source": "读自 db/schema.sql，本轮",
-      "shown": true, "mark": null, "note": "" }
+      "text": "现有的数据库里没有用户表。", "source": "读自 db/schema.sql，本轮" },
+    { "id": "p3-4", "move": "challenge", "node": "n6",
+      "title": "不登录就没法把换班记到人头上",
+      "text": "你说不想做登录，但换班记录要对应到具体的人，这两点有冲突。",
+      "detail": "更长的论证、对比表、步骤写在这里。", "shown": true }
   ],
   "delegated": [
     { "id": "d3-1", "node": "n4", "text": "日期统一按本地时区存，界面上不显示时区。" }
   ],
+  "observations": "observations.md 的当前内容，供他在页面上查看和修改",
   "sources": [
     { "path": "db/schema.sql", "fingerprint": "", "read_round": 3, "nodes": ["n4"] }
   ],
   "exit": null
-}
+};
 ```
 
-说明：
+除了开头的赋值和结尾的分号，其余按 JSON 写。读它时去掉这两处就是 JSON。
 
-- **键与取值一律用这里的英文写法**，与用户使用的语言无关。页面上显示什么文字，由你按他的语言对应。
+### 外壳
+
+- **键与取值一律用这里的英文写法**，与用户使用的语言无关。
 - `phase`：`framing`（框架循环中）或 `filling`（已出口）。
+- `lang`：页面的语言，跟随用户。`zh`、`en` 内置；其他语言见 `page-contract.md`。
 - `anchor`：用户的原话。只有他能改。
 - `preset`：`seed`（种子）、`skeleton`（骨架）、`checkup`（体检）、`crux`（难点），或你自己配组合时写 `custom`。
-- `understanding`：整体理解。只在变了的时候改，不必每轮重写。
+- `understanding`：整体理解。只在变了的时候改。`show_understanding` 在开局、方向发生变化、出口之前为真，其余时候为假。
 - `this_round`：页面上"本轮在做什么"那一两句。
-- `nodes[].status`：`confirmed`（已确认）、`open`（待定）、`disputed`（有分歧，含义见 `discipline.md`）。
-- `nodes[].stale`：`true` 表示它依赖的文件变了、尚未重新确认。它与状态并存，已确认的节点也可能依据已变。
-- `proposals[].move`：`restate`、`diverge`、`fill`、`challenge`、`converge`、`explain`。只存，不在页面上显示。
-- `proposals[].kind`：省略表示这是你的看法，绝大多数提议如此。只有两种需要写：`fact`，同时带 `source`；`decision`，同时带 `options` 和 `recommend`。凭记忆的说法在 `source` 里写明凭记忆。
-- `proposals[].shown`：`false` 表示先收起，用户想看时再展开。
-- `proposals[].mark`、`note`：用户的回应。标记的键见 `page-contract.md`。
-- `delegated[]`：你先替他定了的小事。他点"我来定"后，把它转成一条 `decision` 提议。
 - `sources[]`：被你当作依据的文件。`fingerprint` 只填工具给出的值，拿不到就留空，见 `discipline.md`。
 - `exit`：出口时填 `{ "round": 7, "time": "…", "commit": "…" }`，不是 git 仓库就不填 `commit`。
+- `sections`：可选。页面中间怎样组合，见 `page-contract.md`。
+- `background_options`：可选，只在第 1 轮有用。几个与这个项目相关的经历，供他点选。
+- `observations`：把 `observations.md` 的内容放一份在这里，页面才能显示。
+
+### 节点
+
+- `status`：`confirmed`（已确认）、`open`（待定）、`disputed`（有分歧，含义见 `discipline.md`）。
+- `stale`：`true` 表示它依赖的文件变了、尚未重新确认。它与状态并存，已确认的节点也可能依据已变。
+- `parent`：可选。上一级节点的编号，框架有层级时用。
+
+### 提议
+
+- `move`：`restate`、`diverge`、`fill`、`challenge`、`converge`、`explain`。不在页面上显示，但决定卡片上出现哪些标记。
+- `kind`：省略表示这是你的看法，绝大多数提议如此。只有两种需要写：`fact`，同时带 `source`；`decision`，同时带 `options`。凭记忆的说法在 `source` 里写明凭记忆。
+- `title`、`text`、`detail`：标题一句话，可省；`text` 是一两句的正文；`detail` 放更长的内容。把内容分到这三处，页面才能排出主次。
+- `figure`：可选，一段 SVG。
+- `options`：每项有 `label`，可带 `note`（一句说明）或 `points`（逐项比较的维度）。`recommend` 写你推荐的那一项的 `label`，`reason` 写理由。
+- `shown`：`false` 表示先收起，他想看时再展开。省略等于展开。
 - 编号：提议是 `p轮次-序号`，代定是 `d轮次-序号`，节点是 `n序号`。全程不重复，回传靠它对应。
 
-`proposals` 只留当前轮的，以及还没了结的（他要求解释或核实、你尚未答复的）。已经处理完的不必留着，它们的回应在 `returns/` 里有原文，结果已经进了节点和日志。
+用户的回应不写在提议里，它在回传文件里。你读了回传之后，把结果落到节点、日志和下一轮的提议上。
 
-正文是文本。需要图或表来说明时，生成页面时直接画在对应的位置，并在正文里用一句话写明画的是什么。
+`proposals` 只留当前轮的，以及还没了结的（他要求解释或核实、你尚未答复的）。
 
-这些字段够用即可。某个想法需要的信息放不进现有字段时，写进 `body` 或 `text`，不要新增字段。
+`delegated[]` 是你先替他定了的小事。他点"我来定"后，把它转成一条 `decision` 提议。
+
+这些字段够用即可。某个想法需要的信息放不进现有字段时，写进 `body`、`text` 或 `detail`，不要新增字段。
 
 ## log.md
 
@@ -113,7 +140,7 @@
 
 每轮生成前读它，据此决定：哪些内容需要解释、哪些事交给他定、哪些由你先定、这一轮给多少。
 
-这份文件在页面上要有入口。他改了它，以他改的为准。
+他在页面上改了它，以他改的为准，并写回这个文件。
 
 ## rework.md
 
@@ -121,7 +148,7 @@
 
 ## returns/
 
-每轮回传的原文原样存成 `round-N.txt`。他在对话里直接说的、与本轮有关的话也追加进去。
+每轮的回传由页面写成 `round-N.txt`，格式见 `page-contract.md`。原样保留，不要改写。他在对话里亲手写的、与本轮有关的话，追加到文件末尾，注明是对话里说的。
 
 ## 框架文档
 

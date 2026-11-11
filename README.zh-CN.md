@@ -13,8 +13,8 @@
 早期设计稿。
 
 - skill 的指令已经写完。
-- 还没有完整运行过。这里的全部内容都是未经验证的设计。
-- 页面模板和自动回传通道尚未实现。目前由 agent 每轮生成一个单文件 HTML 页面，用户把结果粘贴回对话。
+- 页面是预制的，所以在任何模型下看起来都一样。skill 自带一个本地小服务，负责提供页面，并把每次提交存成文件，由 agent 在下一轮读取。
+- 页面和两个服务脚本已经用示例数据在浏览器里跑过。skill 整体还没有走完过一次完整的对齐。
 
 skill 的指令用中文写成。页面跟随用户使用的语言。
 
@@ -32,7 +32,7 @@ skill 的指令用中文写成。页面跟随用户使用的语言。
 ## 它怎么工作
 
 1. **先读后问。** agent 先读它自己能读到的东西，再用自己的话复述用户的需求。
-2. **一轮。** agent 探索，把状态写入 `.frame-align/state.json`，生成页面。用户点选标记、写备注、提交。agent 调整，进入下一轮。
+2. **一轮。** agent 探索，把状态写入 `.frame-align/state.js`，预制页面把它显示出来。用户点选标记、写备注、提交，页面把结果存到 `.frame-align/returns/round-N.txt`。用户回到对话里说一声，agent 读取文件、调整、写出下一轮，开着的页面会自己刷新。
 3. **出口。** 框架是否成立由用户决定。先做一次简短的出口检查，列出尚未了结的内容，然后 agent 写出框架文档，默认是 `framework/framework.md`。
 4. **回炉。** 框架不会在出口处冻结。实现暴露出框架没预料到的东西时，再次调用 skill，从待回炉记录接着走。
 
@@ -45,6 +45,8 @@ skill 只管框架循环和回炉，不管实现阶段。
 - 每张卡带适用的标记和备注框。标记负责便宜的决定，真正改变方向的内容写在备注里。
 - 一排可不选的整轮反馈：输出太多、输出太少、太难懂、跑偏了、进度太慢、进度太快。
 - 页面随框架长大，首页最轻。
+- 外框和组件是固定的：卡片、对比表、带序号的步骤、格子或树形的框架图、带 SVG 示意图的说明块。用哪些、按什么顺序、放什么内容由 agent 决定，以数据的形式写出。agent 不写 HTML。
+- 结果进文件，不进用户的 prompt。对话留给用户用自己的话说想说的。
 
 ### 预设
 
@@ -72,6 +74,8 @@ skill 首先把它当作 agent 输出的问题：少给，把需要决定的和�
 - **Claude Code**：`~/.claude/skills/frame-align/` 对所有项目生效，或放在某个项目的 `.claude/skills/frame-align/` 下。用 `/frame-align` 调用。
 - **其他支持 Agent Skills 的 agent**：放到该 agent 的 skills 目录，按它点名调用 skill 的方式使用。
 
+页面服务需要机器上有 Node.js 或 Python 3。它没有其他依赖，只监听 127.0.0.1，闲置十二小时后自行退出。两者都没有时，页面仍可作为本地文件打开，回传改用保存对话框或复制粘贴。
+
 这个 skill 设计为手动调用。
 
 - `SKILL.md` 带有 `disable-model-invocation: true`，Claude Code 和 Cursor 认这个字段。上传到 claude.ai 或为 Skills API 打包之前要删掉这一行，那里不接受未知的 frontmatter 字段。
@@ -85,9 +89,12 @@ frame-align/
   SKILL.md                      核心循环
   references/
     state-format.md             状态、日志、观察记录、框架文档
-    page-contract.md            页面承载什么、标记、回传格式
+    page-contract.md            启动页面、组合页面、标记、回传文件
     discipline.md               来源、复核、分歧、出口检查
     lenses.md                   与技术栈无关的软件框架视角清单
+  assets/page.html              预制页面
+  scripts/serve.js              页面服务，Node.js 版
+  scripts/serve.py              页面服务，Python 3 版
   agents/openai.yaml            Codex 下仅手动调用
 ```
 

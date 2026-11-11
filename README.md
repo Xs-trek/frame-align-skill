@@ -13,8 +13,8 @@ The skill is judged by one thing: whether the user reaches alignment with less e
 Early design draft.
 
 - The skill instructions are written.
-- It has not been run end to end yet. Everything here is unverified design.
-- The page template and the automatic return channel are not implemented. For now the agent generates a single-file HTML page each round, and the user pastes the result back into the conversation.
+- The page is prebuilt, so it looks the same under every model. A small local server, bundled with the skill, serves it and saves each submission to a file that the agent reads on the next round.
+- The page and both server scripts have been exercised with sample data in a browser. The skill as a whole has not been run through a complete alignment yet.
 
 The skill instructions are written in Chinese. Pages follow the language the user writes in.
 
@@ -32,7 +32,7 @@ Its answer is to fix the shape of the loop and leave the content of the loop to 
 ## How it works
 
 1. **Read before asking.** The agent reads whatever it can reach on its own, then restates the user's need in its own words.
-2. **A round.** The agent explores, writes state to `.frame-align/state.json`, and produces a page. The user clicks marks, writes notes, and submits. The agent adjusts and starts the next round.
+2. **A round.** The agent explores and writes state to `.frame-align/state.js`. The prebuilt page shows it. The user clicks marks, writes notes, and submits; the page saves the result to `.frame-align/returns/round-N.txt`. The user says so in the conversation, the agent reads the file, adjusts, and writes the next round. The open page refreshes by itself.
 3. **Exit.** The user decides when the framework holds. A short exit check lists what is still unresolved, then the agent writes a framework document, by default `framework/framework.md`.
 4. **Rework.** The framework is not frozen at exit. When implementation exposes something the framework did not foresee, the skill is invoked again and picks up from the rework notes.
 
@@ -45,6 +45,8 @@ The skill covers the framework loop and rework. It does not manage implementatio
 - Every card has marks that fit it and a note box. Marks cover the cheap decisions; notes carry what actually changes direction.
 - A row of optional whole-round feedback: too much output, too little output, too hard to follow, off track, too slow, too fast.
 - The page grows with the framework. The first page is the lightest one.
+- The shell and the components are fixed: cards, comparison tables, numbered steps, a framework map as tiles or a tree, notes with SVG figures. Which of them appear, in what order and with what content is up to the agent, written as data. The agent never writes HTML.
+- Results go to a file, not into the user's prompt. The conversation stays for what the user wants to say in their own words.
 
 ### Presets
 
@@ -72,6 +74,8 @@ Copy the `frame-align/` folder into your agent's skills directory.
 - **Claude Code**: `~/.claude/skills/frame-align/` for all projects, or `.claude/skills/frame-align/` inside one project. Invoke it with `/frame-align`.
 - **Other agents that support Agent Skills**: use that agent's skills directory and its way of invoking a skill by name.
 
+The page server needs Node.js or Python 3 on the machine. It has no other dependencies, listens on 127.0.0.1 only, and exits after twelve idle hours. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
+
 The skill is meant to be invoked manually.
 
 - `SKILL.md` carries `disable-model-invocation: true`, which Claude Code and Cursor honor. Remove that line before uploading the skill to claude.ai or packaging it for the Skills API, where unknown frontmatter fields are rejected.
@@ -85,9 +89,12 @@ frame-align/
   SKILL.md                      core loop
   references/
     state-format.md             state, log, observation notes, framework document
-    page-contract.md            what the page carries, marks, return format
+    page-contract.md            starting the page, composing it, marks, return file
     discipline.md               sources, re-checking, disputes, exit check
     lenses.md                   stack-neutral checklist of software framework angles
+  assets/page.html              the prebuilt page
+  scripts/serve.js              page server for Node.js
+  scripts/serve.py              page server for Python 3
   agents/openai.yaml            manual-only invocation for Codex
 ```
 
