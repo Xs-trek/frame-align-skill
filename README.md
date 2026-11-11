@@ -82,7 +82,7 @@ The agent gives you a local address. Open it, respond to what you care about, an
 
 ### Cards
 
-Every card has a note box. Type anything there: a reason, a correction, a condition. Marks handle the cheap decisions; notes are where direction changes.
+Every card has a note box. Type anything there: a reason, a correction, a condition. Text boxes grow with what you type, so long text stays fully visible. Marks handle the cheap decisions; notes are where direction changes.
 
 | Card | Controls | Effect |
 |---|---|---|
@@ -122,7 +122,7 @@ Copy the `frame-align/` folder into your agent's skills directory.
 - **Claude Code**: `~/.claude/skills/frame-align/` for all projects, or `.claude/skills/frame-align/` inside one project. Invoke it with `/frame-align`.
 - **Other agents that support Agent Skills**: use that agent's skills directory and its way of invoking a skill by name.
 
-The page server needs Node.js or Python 3 on the machine. It has no other dependencies, listens on 127.0.0.1 only, and exits after twelve idle hours. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
+The page server needs Node.js or Python 3 on the machine and has no other dependencies. It listens on 127.0.0.1 only, hands the state only to the page it served itself, and accepts submissions only from that page. Starting it again for the same project reuses the one already running. It exits after twelve hours without a page load or a submission. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
 
 The skill is meant to be invoked manually.
 

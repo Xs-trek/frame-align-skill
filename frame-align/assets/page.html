@@ -89,7 +89,7 @@ h2 .sub{font-weight:400;color:var(--ink3);letter-spacing:0;margin-left:auto;font
 .pill.neg[aria-pressed=true]{background:var(--bad);border-color:var(--bad)}
 .noteinput{flex:1;min-width:160px;border:0;border-bottom:1px solid var(--line);background:transparent;padding:4px 2px;font-size:14px;resize:none;overflow:hidden;line-height:1.6}
 .noteinput:focus,textarea:focus,input:focus{outline:none;border-color:var(--accent)}
-textarea.area{width:100%;border:1px solid var(--line2);border-radius:8px;background:var(--surface);padding:10px 12px;min-height:76px;resize:vertical;font-size:15px}
+textarea.area{width:100%;border:1px solid var(--line2);border-radius:8px;background:var(--surface);padding:10px 12px;min-height:76px;resize:none;overflow:hidden;font-size:15px;line-height:1.7}
 
 .list{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:4px 18px}
 .row{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
@@ -133,7 +133,7 @@ details.fold>summary{cursor:pointer;color:var(--accent);font-size:14px;list-styl
 details.fold>summary::-webkit-details-marker{display:none}
 details.fold>summary::before{content:"+ "} details.fold[open]>summary::before{content:"– "}
 
-.ret textarea{width:100%;min-height:150px;font:13px/1.6 ui-monospace,Consolas,"SF Mono",monospace;background:var(--sunken);border:1px solid var(--line);border-radius:8px;padding:10px 12px;resize:vertical}
+.ret textarea{width:100%;min-height:150px;font:13px/1.6 ui-monospace,Consolas,"SF Mono",monospace;background:var(--sunken);border:1px solid var(--line);border-radius:8px;padding:10px 12px;resize:none;overflow:hidden}
 .hint{font-size:13px;color:var(--ink3)}
 .dock{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px}
 .dock .in{max-width:780px;margin:0 auto;display:flex;align-items:center;gap:12px}
@@ -165,7 +165,7 @@ zh:{brand:"frame-align",round:"第 {n} 轮",anchor:"你的目标",edit:"修改",
  too_much:"输出太多",too_little:"输出太少",too_hard:"太难懂",off_track:"跑偏了",too_slow:"进度太慢",too_fast:"进度太快",
  observations:"关于你的观察记录",observationsHint:"我据此调整给你的内容。写得不对可以直接改。",
  submit:"提交",saveFile:"保存回传文件",saved:"已保存到 {f}，回到对话里说一声即可。",savedFile:"已保存，回到对话里说一声即可。",
- saveHint:"请保存到项目的 .frame-align/returns/ 目录",waiting:"新一轮准备好后，这个页面会自己刷新。",submitFail:"没能保存。请用下面的手动复制。",
+ saveHint:"请保存到项目的 .frame-align/returns/ 目录",waiting:"新一轮准备好后，这个页面会自己刷新。",submitFail:"没能保存，页面服务可能已经停了。回到对话里告诉 agent，或者用下面的手动复制。",
  manual:"手动复制（备用）",retHint:"只有在没法保存文件时才需要：复制下面的内容，贴回对话。",copy:"复制回传",copied:"已复制，回到对话里粘贴",copyFail:"复制失败，请手动选中下面的文字复制",
  progress:"已回应 {a} / {b} 条",
  rAnchor:"锚点",rUnchanged:"未改",rUnderstanding:"理解",rBackground:"背景",rChoose:"选",rNote:"备注",rFeedback:"整轮反馈",rExpanded:"展开过收起的内容",
@@ -181,7 +181,7 @@ en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"D
  too_much:"Too much output",too_little:"Too little output",too_hard:"Too hard to follow",off_track:"Off track",too_slow:"Too slow",too_fast:"Too fast",
  observations:"Notes about you",observationsHint:"I adjust what I show you based on these. Edit anything that is wrong.",
  submit:"Submit",saveFile:"Save return file",saved:"Saved to {f}. Go back to the conversation and say so.",savedFile:"Saved. Go back to the conversation and say so.",
- saveHint:"Save it into the project's .frame-align/returns/ folder",waiting:"This page refreshes by itself when the next round is ready.",submitFail:"Could not save. Use manual copy below.",
+ saveHint:"Save it into the project's .frame-align/returns/ folder",waiting:"This page refreshes by itself when the next round is ready.",submitFail:"Could not save. The page server may have stopped. Tell the agent in the conversation, or use manual copy below.",
  manual:"Manual copy (fallback)",retHint:"Only needed when the file cannot be saved: copy the text below and paste it into the conversation.",copy:"Copy return",copied:"Copied. Paste it into the conversation",copyFail:"Copy failed. Select the text below and copy it manually",
  progress:"Responded to {a} of {b}",
  rAnchor:"Anchor",rUnchanged:"unchanged",rUnderstanding:"Understanding",rBackground:"Background",rChoose:"choose",rNote:"note",rFeedback:"Round feedback",rExpanded:"Opened collapsed items",
@@ -249,7 +249,9 @@ function svgFigure(src){
 
 /* ---------- response state ---------- */
 var proposals=(S.proposals||[]), nodes=(S.nodes||[]), delegated=(S.delegated||[]);
-var KEY="frame-align:"+location.pathname+":"+S.round;
+/* Saved responses belong to one idea and one round. Another project served on the same address must not pick them up. */
+function hash(s){var h=5381; s=String(s); for(var i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36);}
+var KEY="frame-align:"+hash((S.anchor||"")+"|"+proposals.map(function(p){return p.id;}).join(","))+":"+S.round;
 var R={marks:{},notes:{},choose:{},take:{},reopen:{},nodeNotes:{},feedback:[],overall:"",next:"again",
        anchor:null,understanding:null,background:"",bg:[],expanded:false,observations:null};
 try{var saved=JSON.parse(localStorage.getItem(KEY)||"null"); if(saved) Object.assign(R,saved);}catch(e){}
@@ -446,13 +448,19 @@ function render(){
       el.insertAdjacentElement("afterend",b);
     }
   });
-  app.querySelectorAll("textarea.noteinput").forEach(grow);
+  growAll();
   var fold=document.getElementById("hiddenFold");
   if(fold) fold.addEventListener("toggle",function(){if(fold.open && !R.expanded){R.expanded=true;save();}});
   refresh();
 }
 function cssq(s){return String(s).replace(/["\\]/g,"\\$&");}
-function grow(el){el.style.height="auto"; el.style.height=el.scrollHeight+"px";}
+/* Every text box is as tall as its content, so long text is never read through a slit. */
+function grow(el){
+  if(!el || !el.offsetParent) return;
+  el.style.height="auto";
+  el.style.height=(el.scrollHeight+el.offsetHeight-el.clientHeight)+"px";
+}
+function growAll(root){(root||app).querySelectorAll("textarea").forEach(grow);}
 
 /* ---------- return text ---------- */
 function flat(s){return String(s).trim().replace(/\s*\n+\s*/g," / ");}
@@ -484,7 +492,7 @@ function buildReturn(){
   return out.join("\n");
 }
 function refresh(){
-  var ta=document.getElementById("retText"); if(ta) ta.value=buildReturn();
+  var ta=document.getElementById("retText"); if(ta){ta.value=buildReturn(); grow(ta);}
   var done=0;
   proposals.forEach(function(p){
     var touched=!!(R.choose[p.id] || (R.marks[p.id]||[]).length || (R.notes[p.id]||"").trim());
@@ -502,8 +510,8 @@ function editInPlace(boxId,key,source,btn){
   var ta=box.querySelector("textarea");
   if(ta){ R[key]=ta.value; save(); box.innerHTML=(key==="anchor")?esc(R[key]):md(R[key]); btn.textContent=t(key==="anchor"?"edit":"understandingEdit"); return; }
   box.innerHTML='<textarea class="area"></textarea>'; ta=box.querySelector("textarea");
-  ta.value=R[key]!=null?R[key]:(source||""); ta.focus();
-  ta.addEventListener("input",function(){R[key]=ta.value; save();});
+  ta.value=R[key]!=null?R[key]:(source||""); grow(ta); ta.focus();
+  ta.addEventListener("input",function(){R[key]=ta.value; grow(ta); save();});
   btn.textContent=t("done");
 }
 app.addEventListener("click",function(e){
@@ -534,13 +542,16 @@ app.addEventListener("click",function(e){
 });
 app.addEventListener("input",function(e){
   var el=e.target, act=el.dataset.act; if(!act) return;
-  if(act==="note"){ (el.dataset.scope==="node"?R.nodeNotes:R.notes)[el.dataset.id]=el.value; grow(el); }
+  if(el.tagName==="TEXTAREA") grow(el);
+  if(act==="note") (el.dataset.scope==="node"?R.nodeNotes:R.notes)[el.dataset.id]=el.value;
   else if(act==="overall") R.overall=el.value;
-  else if(act==="background"){ R.background=el.value; grow(el); }
+  else if(act==="background") R.background=el.value;
   else if(act==="observations") R.observations=el.value;
   else return;
   save();
 });
+app.addEventListener("toggle",function(e){growAll(e.target);},true);
+window.addEventListener("resize",function(){growAll();});
 function openNode(btn,id){
   var grid=document.getElementById("nodes"), old=grid.querySelector(".nodepanel"), was=btn.getAttribute("aria-expanded")==="true";
   if(old) old.remove();
