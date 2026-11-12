@@ -6,14 +6,12 @@
 |---|---|
 | `state.js` | 当前状态。页面直接读它，你靠它知道哪条变了 |
 | `log.md` | 决策日志，只追加 |
-| `observations.md` | 对用户行为的观察和他明说的要求，他可见可改 |
-| `rework.md` | 内容填充阶段记下的待回炉事项 |
 | `returns/round-N.txt` | 每轮的回传，由页面命令写入 |
 | `server.json` | 这个项目的页面地址和页面凭据，由页面命令写入 |
 
 框架文档不放在这里。它要让人和后续的 agent 都看得见，默认是工作目录下的 `framework/framework.md`，位置可由用户指定，记在状态的 `doc_path` 里。
 
-第一次创建目录时告诉用户一句：值得纳入版本管理的是 `state.js`、`log.md`、`rework.md` 和框架文档；`returns/` 会越积越多，可以忽略，`server.json` 只对本机有意义，也应忽略；`observations.md` 记的是关于他本人的观察，是否纳入由他定。
+第一次创建目录时告诉用户一句：值得纳入版本管理的是 `state.js`、`log.md` 和框架文档；`returns/` 会越积越多，可以忽略，`server.json` 只对本机有意义，也应忽略。`state.js` 里有关于他本人的观察记录，是否纳入由他定。
 
 状态的外壳只有少数几个字段，正文一律是自由文本，不要为了套格式而削掉内容。
 
@@ -24,7 +22,6 @@
 ```js
 window.FRAME_ALIGN_STATE = {
   "version": 1,
-  "phase": "framing",
   "round": 3,
   "lang": "zh",
   "anchor": "用户的原话，原样",
@@ -35,7 +32,7 @@ window.FRAME_ALIGN_STATE = {
   "this_round": "从上一轮反馈里读到了什么、因此改了什么；这一轮打算做什么",
   "nodes": [
     { "id": "n3", "title": "换班流程", "body": "自由文本，写清这个节点目前定成什么样",
-      "status": "open", "stale": false, "note": "用户对这个节点的备注", "round": 2 }
+      "status": "open", "note": "用户对这个节点的备注", "round": 2 }
   ],
   "proposals": [
     { "id": "p3-1", "move": "diverge", "node": "n3",
@@ -59,10 +56,9 @@ window.FRAME_ALIGN_STATE = {
   "delegated": [
     { "id": "d3-1", "node": "n4", "text": "日期统一按本地时区存，界面上不显示时区。" }
   ],
-  "observations": "observations.md 的当前内容，供他在页面上查看和修改",
-  "sources": [
-    { "path": "db/schema.sql", "fingerprint": "", "read_round": 3, "nodes": ["n4"] }
-  ],
+  "observations": "开局自述：做过两个 Python 脚本项目，没写过前端。
+第 2 轮：对数据库相关的两条都点了解释。整轮反馈：太难懂。
+第 3 轮：他说“流程部分别一次给这么多”。",
   "exit": null
 };
 ```
@@ -72,23 +68,20 @@ window.FRAME_ALIGN_STATE = {
 ### 外壳
 
 - **键与取值一律用这里的英文写法**，与用户使用的语言无关。
-- `phase`：`framing`（框架循环中）或 `filling`（已出口）。
 - `lang`：页面的语言，跟随用户。`zh`、`en` 内置；其他语言见 `page-contract.md`。
 - `anchor`：用户的原话。只有他能改。
 - `preset`：`seed`（种子）、`skeleton`（骨架）、`checkup`（体检）、`crux`（难点），或你自己配组合时写 `custom`。
 - `understanding`：整体理解。只在变了的时候改。`show_understanding` 在开局、方向发生变化、出口之前为真，其余时候为假。
 - `this_round`：页面上"本轮在做什么"那一两句。
-- `sources[]`：被你当作依据的文件。`fingerprint` 只填工具给出的值，拿不到就留空，见 `discipline.md`。
-- `exit`：出口时填 `{ "round": 7, "time": "…", "commit": "…" }`，不是 git 仓库就不填 `commit`。
+- `exit`：没出口时是 `null`，出口时填 `{ "round": 7, "time": "…", "commit": "…" }`，不是 git 仓库就不填 `commit`。
 - `exit_check`：可选。出口检查那一页写 `true`，页面上的"下一步"换成确认出口和还要再改。
 - `sections`：可选。页面中间怎样组合，见 `page-contract.md`。
 - `background_options`：可选，只在第 1 轮有用。几个与这个项目相关的经历，供他点选。
-- `observations`：把 `observations.md` 的内容放一份在这里，页面才能显示。
+- `observations`：你对他的观察，他在页面上可见可改；他改了就以他改的为准。只记两样：他明说的要求，原话照录；你看到的行为，只记发生了什么。不要写"用户是新手"这类推断出来的标签，标签会被当成定论，行为记录可以被新的行为修正。
 
 ### 节点
 
 - `status`：`confirmed`（已确认）、`open`（待定）、`disputed`（有分歧，含义见 `discipline.md`）。
-- `stale`：`true` 表示它依赖的文件变了、尚未重新确认。它与状态并存，已确认的节点也可能依据已变。
 - `parent`：可选。上一级节点的编号，框架有层级时用。
 - `figure`：可选。这个节点的图，他点开节点时看到。
 
@@ -124,31 +117,6 @@ window.FRAME_ALIGN_STATE = {
 
 用处：节点反复变动时，能看出是什么在推动它。
 
-## observations.md
-
-记两样东西。
-
-一是用户明说的要求，原话照录。例如他说"别给我那么多选项"，就记这句话。
-
-二是你观察到的行为。只记发生了什么，不下结论。
-
-```
-开局自述：做过两个 Python 脚本项目，没写过前端。
-第 2 轮：对数据库相关的两条都点了"解释"。整轮反馈：太难懂。
-第 3 轮：他说"流程部分别一次给这么多"。展开了收起的内容。
-第 4 轮：把我的理解改了一句，改的是目标用户的范围。
-```
-
-不要写"用户是新手"这类你推断出来的标签。标签会被当成定论，行为记录可以被新的行为修正。
-
-每轮生成前读它，据此决定：哪些内容需要解释、哪些事交给他定、哪些由你先定、这一轮给多少。
-
-他在页面上改了它，以他改的为准，并写回这个文件。
-
-## rework.md
-
-内容填充阶段，发现实现与框架不符时追加一条：发现了什么、涉及哪个节点、是否阻塞。
-
 ## returns/
 
 每轮的回传存成 `round-N.txt`，格式见 `page-contract.md`。原样保留，不要改写，也不要往里加东西。
@@ -157,15 +125,12 @@ window.FRAME_ALIGN_STATE = {
 
 出口时由状态生成。它是给后续工作读的，所以要自成一体，不要求读者了解本 skill。
 
-出口之后以这份文档为准。用户或后续的 agent 可能直接改它，所以回炉的第一步是把它的改动读回状态。
-
 开头固定带这段约定：
 
 ```markdown
 > 本文档是与用户对齐后的框架，不是不可更改的规格。
 > 实现过程中如果发现与此处不符（某个节点做不下去、框架依赖的某个说法不成立、用户提出了新的要求），
-> 不要悄悄绕过，也不要自行改写本文档。把发现记到 `.frame-align/rework.md`，继续做不受影响的部分。
-> 如果冲突阻塞了工作，告诉用户，并建议调用 frame-align 回炉。
+> 不要悄悄绕过，也不要自行改写本文档：告诉用户，由他决定是否调整框架。
 ```
 
 之后的内容：

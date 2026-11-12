@@ -10,7 +10,7 @@
   --ink:#1d1c1a; --ink2:#55534e; --ink3:#8b8880; --line:#e3e0d6; --line2:#cfcbbf;
   --accent:#0d6b66; --accent-soft:#e2f1ef; --accent-ink:#0a4f4b;
   --ok:#2c7a4b; --ok-soft:#e4f2e8; --warn:#a8690f; --warn-soft:#f8eed9;
-  --bad:#b0443a; --bad-soft:#f8e6e3; --stale:#6b5fb5; --stale-soft:#ebe8f8;
+  --bad:#b0443a; --bad-soft:#f8e6e3;
   --radius:10px; --shadow:0 1px 2px rgba(30,28,20,.05),0 4px 14px rgba(30,28,20,.04);
 }
 @media (prefers-color-scheme:dark){:root{
@@ -18,7 +18,7 @@
   --ink:#eceae4; --ink2:#b3b0a7; --ink3:#817e76; --line:#31302c; --line2:#45433e;
   --accent:#5cc4bc; --accent-soft:#16312f; --accent-ink:#a5e3dd;
   --ok:#6cc08a; --ok-soft:#18301f; --warn:#e0a850; --warn-soft:#33270f;
-  --bad:#e58a80; --bad-soft:#3a1c18; --stale:#a79cf0; --stale-soft:#26223f;
+  --bad:#e58a80; --bad-soft:#3a1c18;
   --shadow:none;
 }}
 *{box-sizing:border-box}
@@ -105,14 +105,13 @@ textarea.area{width:100%;border:1px solid var(--line2);border-radius:8px;backgro
 .bar i{display:block}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--ink2);margin-bottom:12px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-.s-confirmed{background:var(--ok)} .s-open{background:var(--warn)} .s-disputed{background:var(--bad)} .s-stale{background:var(--stale)}
+.s-confirmed{background:var(--ok)} .s-open{background:var(--warn)} .s-disputed{background:var(--bad)}
 .nodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .node{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .node:hover{border-color:var(--line2)}
 .node[aria-expanded=true]{border-color:var(--accent)}
 .node .t{font-weight:600;font-size:14.5px;display:flex;align-items:center}
 .node .b{font-size:12.5px;color:var(--ink3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.node .flag{font-size:11px;color:var(--stale);background:var(--stale-soft);border-radius:99px;padding:0 7px;margin-left:auto;font-weight:400}
 .nodepanel{grid-column:1/-1;background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:14px 16px}
 .nodepanel h3{margin:0 0 6px;font-size:16px}
 .status{font-size:12px;border-radius:99px;padding:0 9px;line-height:20px;font-weight:400}
@@ -164,7 +163,7 @@ var DICT = {
 zh:{brand:"frame-align",round:"第 {n} 轮",anchor:"你的目标",edit:"修改",done:"完成",understanding:"我的理解",understandingEdit:"哪里不对，直接改",
  unchanged:"与上一轮相同",background:"你的技术背景",backgroundPh:"方便的话说说你做过什么、用过什么，不说也行",
  zoneDecide:"需要你定的",zoneTell:"我告诉你的",zoneDecided:"我先定了的",zoneDecidedSub:"小事，随时可以收回",hidden:"还有 {n} 条没展开",
- framework:"框架现状",confirmed:"已确认",open:"待定",disputed:"有分歧",stale:"依据已变",reopen:"重开",notePh:"备注",
+ framework:"框架现状",confirmed:"已确认",open:"待定",disputed:"有分歧",reopen:"重开",notePh:"备注",
  source:"来源",recommend:"推荐",pick:"选这个",expand:"展开",collapse:"收起",figureFail:"这张图没能画出来，请告诉 agent。",
  keep:"留着",drop:"不要",more:"多来点",accept:"接受",reject:"不接受",explain:"解释",verify:"去核实",wrong:"不对",take_over:"我来定",unclear:"还是没懂",
  feedback:"这一轮整体怎么样",overallPh:"还有什么想说的：疑问、不满、想换的方向",next:"下一步",again:"再来一轮",enough:"灵感够了",exit:"框架成立",confirm:"确认出口",back:"还要再改",
@@ -183,7 +182,7 @@ zh:{brand:"frame-align",round:"第 {n} 轮",anchor:"你的目标",edit:"修改",
 en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"Done",understanding:"What I understood",understandingEdit:"Edit it where it is wrong",
  unchanged:"Same as last round",background:"Your background",backgroundPh:"Optional: what you have built or used before",
  zoneDecide:"Needs your decision",zoneTell:"What I am telling you",zoneDecided:"Already decided for you",zoneDecidedSub:"Small things. Take any of them back.",hidden:"{n} more not expanded",
- framework:"Framework so far",confirmed:"Confirmed",open:"Open",disputed:"Disputed",stale:"Basis changed",reopen:"Reopen",notePh:"Note",
+ framework:"Framework so far",confirmed:"Confirmed",open:"Open",disputed:"Disputed",reopen:"Reopen",notePh:"Note",
  source:"Source",recommend:"Recommended",pick:"Choose",expand:"Show more",collapse:"Show less",figureFail:"This figure could not be drawn. Tell the agent.",
  keep:"Keep",drop:"Drop",more:"More like this",accept:"Accept",reject:"Reject",explain:"Explain",verify:"Verify",wrong:"Not right",take_over:"I will decide",unclear:"Still unclear",
  feedback:"How was this round overall",overallPh:"Anything else: questions, complaints, a different direction",next:"Next",again:"Another round",enough:"Enough ideas",exit:"Framework holds",confirm:"Confirm exit",back:"Not yet",
@@ -389,16 +388,15 @@ function delegatedBlock(sec){
 function nodeButton(n,depth){
   return '<button type="button" class="node" data-act="node" data-id="'+esc(n.id)+'" aria-expanded="false"'
     +(depth?' style="margin-left:'+(depth*22)+"px;width:calc(100% - "+(depth*22)+'px)"':"")+">"
-    +'<div class="t"><span class="dot s-'+esc(n.status)+'"></span>'+esc(n.title)+(n.stale?'<span class="flag">'+t("stale")+"</span>":"")+"</div>"
+    +'<div class="t"><span class="dot s-'+esc(n.status)+'"></span>'+esc(n.title)+"</div>"
     +'<div class="b">'+esc(String(n.body||"").split("\n")[0])+"</div></button>";
 }
 function frameworkBlock(sec){
-  var cnt={confirmed:0,open:0,disputed:0}, stale=0;
-  nodes.forEach(function(n){cnt[n.status]=(cnt[n.status]||0)+1; if(n.stale) stale++;});
+  var cnt={confirmed:0,open:0,disputed:0};
+  nodes.forEach(function(n){cnt[n.status]=(cnt[n.status]||0)+1;});
   var bar='<div class="bar">'+["confirmed","open","disputed"].map(function(k){return cnt[k]?'<i class="s-'+k+'" style="flex:'+cnt[k]+'"></i>':"";}).join("")+"</div>";
   var leg='<div class="legend">'+["confirmed","open","disputed"].filter(function(k){return cnt[k];}).map(function(k){
-    return '<span><span class="dot s-'+k+'"></span>'+t(k)+" "+cnt[k]+"</span>";}).join("")
-    +(stale?'<span><span class="dot s-stale"></span>'+t("stale")+" "+stale+"</span>":"")+"</div>";
+    return '<span><span class="dot s-'+k+'"></span>'+t(k)+" "+cnt[k]+"</span>";}).join("")+"</div>";
   var body;
   if(sec.view==="tree"){
     var ids={}, kids={}, seen={}, out="";
@@ -611,7 +609,7 @@ function openNode(btn,id){
   var n=nodes.filter(function(x){return x.id===id;})[0]; if(!n) return;
   btn.setAttribute("aria-expanded","true");
   var p=document.createElement("div"); p.className="nodepanel";
-  p.innerHTML='<h3>'+esc(n.title)+' <span class="status '+esc(n.status)+'">'+t(n.status)+"</span>"+(n.stale?' <span class="status" style="background:var(--stale-soft);color:var(--stale)">'+t("stale")+"</span>":"")+"</h3>"
+  p.innerHTML='<h3>'+esc(n.title)+' <span class="status '+esc(n.status)+'">'+t(n.status)+"</span>"+"</h3>"
     +"<div>"+md(n.body)+"</div>"+figBox(n.figure)+(n.note?'<div class="source">'+inline(n.note)+"</div>":"")
     +'<div class="acts">'+(n.status==="confirmed"?'<button type="button" class="pill" data-act="reopen" data-id="'+esc(id)+'" aria-pressed="'+!!R.reopen[id]+'">'+t("reopen")+"</button>":"")+noteBox("node",id)+"</div>";
   btn.insertAdjacentElement("afterend",p); mountFigures(p); grow(p.querySelector("textarea"));

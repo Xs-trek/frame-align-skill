@@ -34,9 +34,8 @@ Its answer is to fix the shape of the loop and leave the content of the loop to 
 1. **Read before asking.** The agent reads whatever it can reach on its own, then restates the user's need in its own words.
 2. **A round.** The agent explores, writes state to `.frame-align/state.js`, and runs the page command, which opens the page in the browser. The user clicks marks, writes notes, and submits. The result is saved to `.frame-align/returns/round-N.txt` and handed straight to the waiting agent, which adjusts and writes the next round. The open page refreshes by itself. The agent waits a few minutes at most; a user who submits later says so in the conversation, and the page then delivers the result by itself.
 3. **Exit.** The user decides when the framework holds. A short exit check lists what is still unresolved, then the agent writes a framework document, by default `framework/framework.md`.
-4. **Rework.** The framework is not frozen at exit. When implementation exposes something the framework did not foresee, the skill is invoked again and picks up from the rework notes.
 
-The skill covers the framework loop and rework. It does not manage implementation.
+The skill covers only this alignment before building. It does not manage implementation. If implementation shows the framework needs to change, invoke the skill again and carry on from the existing framework.
 
 ### On the page
 
@@ -102,7 +101,7 @@ Accept and Reject exclude each other, as do Keep and Drop. Other marks can be co
 |---|---|
 | **N more not expanded** | Lower-priority items the agent held back. Open it if you want them. Whether you opened it is recorded, so the agent learns how much you want to see. |
 | **Already decided for you** · I will decide | Small things the agent settled on its own. Press I will decide on any of them to take it back; it returns next round as a decision for you. |
-| **Framework so far** | A bar showing how many parts are confirmed, open or disputed, then one tile per part. Click a tile to read it and leave a note. **Reopen** turns a confirmed part back to open. A "Basis changed" flag means a file it relied on has changed. |
+| **Framework so far** | A bar showing how many parts are confirmed, open or disputed, then one tile per part. Click a tile to read it and leave a note. **Reopen** turns a confirmed part back to open. |
 | **How was this round overall** | Six optional chips: too much output, too little output, too hard to follow, off track, too slow, too fast. The agent adjusts the next round accordingly. The first round has neither this row nor **Next**, only the large text box. |
 | The large text box | Anything not covered above: questions, complaints, a different direction. |
 | **Next** | Another round continues. Enough ideas tells the agent to stop offering directions and start filling in and narrowing down. Framework holds starts the exit check. On the exit check page this becomes Confirm exit and Not yet; nothing counts as confirmed until you press one. |
@@ -139,7 +138,7 @@ The skill is meant to be invoked manually.
 frame-align/
   SKILL.md                      core loop
   references/
-    state-format.md             state, log, observation notes, framework document
+    state-format.md             state, log, framework document
     page-contract.md            running the page, composing it, marks, the return
     discipline.md               sources, re-checking, disputes, exit check
     lenses.md                   stack-neutral checklist of software framework angles
