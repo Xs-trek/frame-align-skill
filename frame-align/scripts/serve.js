@@ -17,6 +17,8 @@ for (let i = 0; i < args.length; i++) {
   else dir = args[i];
 }
 dir = path.resolve(dir);
+// The wait is always finite: nine minutes unless told otherwise, an hour at most.
+wait = Math.min(wait > 0 ? wait : 540, 3600);
 const pageFile = path.join(__dirname, "..", "assets", "page.html");
 const stateFile = path.join(dir, "state.js");
 const returnsDir = path.join(dir, "returns");
@@ -98,7 +100,7 @@ const server = http.createServer((req, res) => {
       } catch (e) {
         return send(res, 500, TEXT, "could not write the return file");
       }
-      res.on("finish", check);
+      res.on("finish", () => finish(returned(name, text)));
       send(res, 200, "application/json", JSON.stringify({ ok: true, file: path.basename(dir) + "/returns/" + name }));
     });
     return;
@@ -106,32 +108,30 @@ const server = http.createServer((req, res) => {
   send(res, 404, TEXT, "not found");
 });
 
-// The run ends when a return newer than its start is on disk, however it got
-// there, or when the wait is over.
+// The run ends when the user submits, or when the wait is over.
 let ended = false;
 function finish(text) {
-  // Stopping must not depend on anyone still listening to the output.
+  if (ended) return;
   ended = true;
+  // Stopping must not depend on anyone still listening to the output.
   setTimeout(() => process.exit(0), 1500);
   try { process.stdout.write(text + "\n", () => process.exit(0)); } catch (e) { process.exit(0); }
 }
 process.stdout.on("error", () => process.exit(0));
-function check() {
-  if (ended) return;
-  let newest = null, at = started - 1500;
+function returned(name, text) {
+  return "frame-align return: " + path.basename(dir) + "/returns/" + name + "\n" + text.replace(/\s*$/, "");
+}
+// A return for the state now on the page may already be on disk: an earlier
+// run took it after the agent had stopped listening. Hand it over at once.
+function waitingReturn() {
   try {
-    fs.readdirSync(returnsDir).forEach(f => {
-      if (!/^round-\d+\.txt$/.test(f)) return;
-      const t = fs.statSync(path.join(returnsDir, f)).mtimeMs;
-      if (t > at) { at = t; newest = f; }
-    });
-  } catch (e) {}
-  if (newest) {
-    let text = ""; try { text = fs.readFileSync(path.join(returnsDir, newest), "utf8"); } catch (e) {}
-    finish("frame-align return: " + path.basename(dir) + "/returns/" + newest + "\n" + text.replace(/\s*$/, ""));
-  } else if (Date.now() - started > wait * 1000) {
-    finish("frame-align: no return yet. The page server has stopped. Run this again when the user is back.");
-  }
+    const m = /"round"\s*:\s*(\d+)/.exec(fs.readFileSync(stateFile, "utf8"));
+    if (!m) return null;
+    const name = "round-" + parseInt(m[1], 10) + ".txt", file = path.join(returnsDir, name);
+    if (fs.statSync(file).mtimeMs <= fs.statSync(stateFile).mtimeMs) return null;
+    const text = fs.readFileSync(file, "utf8");
+    return /^\[frame-align\] round \d+\s*(\n|$)/.test(text) ? returned(name, text) : null;
+  } catch (e) { return null; }
 }
 
 function openBrowser(url) {
@@ -174,11 +174,13 @@ server.on("listening", () => {
   }
   if (!fs.existsSync(stateFile)) console.error("frame-align: no state.js in " + dir + " yet. The page stays empty until it is written.");
   console.log("frame-align page: " + url);
-  setInterval(check, 700);
+  setTimeout(() => finish("frame-align: no return yet. The page server has stopped. Run this again when the user is back."), wait * 1000);
   // A page left open from the last round finds this server by itself.
-  // Only when none shows up is a new one opened.
-  if (open) setTimeout(() => { if (!pageSeen) openBrowser(url); }, 4000);
+  // Only when none shows up is a new one opened. The first run opens at once.
+  if (open) setTimeout(() => { if (!pageSeen) openBrowser(url); }, known.key ? 8000 : 300);
 });
 process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));
-server.listen(ports[0], "127.0.0.1");
+const already = waitingReturn();
+if (already) finish("frame-align page: http://127.0.0.1:" + ports[0] + "/\n" + already);
+else server.listen(ports[0], "127.0.0.1");

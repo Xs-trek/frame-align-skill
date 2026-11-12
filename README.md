@@ -43,7 +43,7 @@ The skill covers the framework loop and rework. It does not manage implementatio
 - The user's own words stay pinned at the top as the goal. Only the user can change them.
 - Content is sorted by what the user has to do: things that need your decision, things I am telling you, and small things I already decided for you. Each of the last kind can be taken back.
 - Every card has marks that fit it and a note box. Marks cover the cheap decisions; notes carry what actually changes direction.
-- A row of optional whole-round feedback: too much output, too little output, too hard to follow, off track, too slow, too fast.
+- From the second round on, a row of optional whole-round feedback: too much output, too little output, too hard to follow, off track, too slow, too fast.
 - The page grows with the framework. The first page is the lightest one.
 - The shell and the components are fixed: cards, comparison tables, numbered steps, a framework map as tiles or a tree, notes. Which of them appear, in what order and with what content is up to the agent, written as data. The agent does not write the page.
 - The agent can draw. A card, a note or a framework part can carry a figure: an SVG, or a fragment of HTML with its own styles and scripts. Figures are isolated from the page, so whatever a model draws cannot break or read it, and they are shown on light paper in both themes. Text fields also take code blocks for ASCII diagrams and trees.
@@ -103,7 +103,7 @@ Accept and Reject exclude each other, as do Keep and Drop. Other marks can be co
 | **N more not expanded** | Lower-priority items the agent held back. Open it if you want them. Whether you opened it is recorded, so the agent learns how much you want to see. |
 | **Already decided for you** · I will decide | Small things the agent settled on its own. Press I will decide on any of them to take it back; it returns next round as a decision for you. |
 | **Framework so far** | A bar showing how many parts are confirmed, open or disputed, then one tile per part. Click a tile to read it and leave a note. **Reopen** turns a confirmed part back to open. A "Basis changed" flag means a file it relied on has changed. |
-| **How was this round overall** | Six optional chips: too much output, too little output, too hard to follow, off track, too slow, too fast. The agent adjusts the next round accordingly. |
+| **How was this round overall** | Six optional chips: too much output, too little output, too hard to follow, off track, too slow, too fast. The agent adjusts the next round accordingly. The first round has neither this row nor **Next**, only the large text box. |
 | The large text box | Anything not covered above: questions, complaints, a different direction. |
 | **Next** | Another round continues. Enough ideas tells the agent to stop offering directions and start filling in and narrowing down. Framework holds starts the exit check. |
 | **Notes about you** | What the agent has observed about how you work, which it uses to adjust what it shows. Edit anything that is wrong. |
@@ -114,7 +114,7 @@ Accept and Reject exclude each other, as do Keep and Drop. Other marks can be co
 - When the bar says "Filled in, not delivered yet", the agent has stopped waiting, usually because you took a while. Say so in the conversation and the page delivers the result by itself. You do not have to press Submit again.
 - While the agent is not waiting, the page can still be read and filled in.
 - The rest of the time the bar shows how many cards you have responded to.
-- After you submit, leave the page open. It refreshes by itself when the next round is ready.
+- After you submit, leave the page open. It refreshes by itself when the next round is ready. Now and then a second tab opens; the older one then says it can be closed, and what you filled in is in the new one.
 - What you fill in is kept in the browser until the round changes, so a reload does not lose it.
 - **Manual copy (fallback)** at the very bottom is only for the case where saving fails.
 

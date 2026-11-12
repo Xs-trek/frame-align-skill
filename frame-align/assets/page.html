@@ -178,6 +178,7 @@ zh:{brand:"frame-align",round:"第 {n} 轮",anchor:"你的目标",edit:"修改",
  progress:"已回应 {a} / {b} 条",
  rAnchor:"锚点",rUnchanged:"未改",rUnderstanding:"理解",rBackground:"背景",rChoose:"选",rNote:"备注",rFeedback:"整轮反馈",rExpanded:"展开过收起的内容",
  rObservations:"观察记录",rOverall:"整体",rNext:"下一步",yes:"是",no:"否",sep:"、",colon:"：",bar:"｜",
+ movedTitle:"这一页可以关掉了",movedBody:"这个项目的页面已经在另一个标签页打开，你填过的内容在那边。",
  errTitle:"没有读到本轮的数据",errBody:"这个页面需要同一目录下的 state.js。请回到对话里告诉 agent。"},
 en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"Done",understanding:"What I understood",understandingEdit:"Edit it where it is wrong",
  unchanged:"Same as last round",background:"Your background",backgroundPh:"Optional: what you have built or used before",
@@ -196,6 +197,7 @@ en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"D
  progress:"Responded to {a} of {b}",
  rAnchor:"Anchor",rUnchanged:"unchanged",rUnderstanding:"Understanding",rBackground:"Background",rChoose:"choose",rNote:"note",rFeedback:"Round feedback",rExpanded:"Opened collapsed items",
  rObservations:"Observation notes",rOverall:"Overall",rNext:"Next",yes:"yes",no:"no",sep:", ",colon:": ",bar:" | ",
+ movedTitle:"You can close this tab",movedBody:"This project's page is now open in another tab. What you filled in is there.",
  errTitle:"No data for this round",errBody:"This page needs state.js in the same folder. Go back to the conversation and tell the agent."}
 };
 var lang = (S && S.lang) || ((navigator.language||"zh").slice(0,2)==="zh" ? "zh" : "en");
@@ -304,7 +306,8 @@ var MODE=/^http/.test(location.protocol)?"server":(window.showSaveFilePicker?"pi
 /* The server tells the page which project it belongs to and how fresh its state is. */
 var PAGE=window.FRAME_ALIGN_PAGE||{id:"",stamp:0};
 /* "" not submitted; "sending"; "pending" submitted while no agent is waiting; "sent" delivered; "other" the address changed hands. */
-var phase="", watching=false;
+var phase="", gone=false, PKEY=KEY+":pending";
+function setPending(on){try{if(on) localStorage.setItem(PKEY,"1"); else localStorage.removeItem(PKEY);}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(R));}catch(e){} if(phase==="sent") phase=""; refresh();}
 
 var EXCL=[["accept","reject"],["keep","drop"]], NEG={reject:1,drop:1,wrong:1};
@@ -423,10 +426,11 @@ function render(){
       h+='<div class="block"><div class="label">'+t("understanding")+'<button type="button" class="link" data-act="editUnderstanding">'+t("understandingEdit")+'</button></div>'
         +'<div id="understandingText">'+md(uv)+"</div></div>";
     }else{
-      h+='<details class="fold"><summary>'+t("understanding")+" · "+t("unchanged")+'</summary><div class="block quiet"><div id="understandingText">'+md(uv)+"</div></div></details>";
+      h+='<details class="fold"><summary>'+t("understanding")+" · "+t("unchanged")+'</summary><div class="block quiet"><div class="label"><button type="button" class="link" data-act="editUnderstanding">'+t("understandingEdit")+'</button></div>'
+        +'<div id="understandingText">'+md(uv)+"</div></div></details>";
     }
   }
-  if(S.round===1 || S.ask_background){
+  if(S.round===1){
     h+='<div class="block"><div class="label">'+t("background")+"</div>";
     if(S.background_options && S.background_options.length){
       h+='<div class="chips">'+S.background_options.map(function(o){
@@ -462,9 +466,12 @@ function render(){
   if(delegated.length && !placed.delegated) h+=delegatedBlock({});
   if(nodes.length && !placed.framework) h+=frameworkBlock({});
 
-  h+=section("",t("feedback"),null,"",'<div class="chips">'+["too_much","too_little","too_hard","off_track","too_slow","too_fast"].map(function(k){
+  /* The first page is the lightest: one box for anything, no round feedback, no choice of next step. */
+  var overall='<textarea class="area" data-act="overall" placeholder="'+t("overallPh")+'">'+esc(R.overall)+"</textarea>";
+  if(S.round===1) h+='<div style="margin-top:28px">'+overall+"</div>";
+  else h+=section("",t("feedback"),null,"",'<div class="chips">'+["too_much","too_little","too_hard","off_track","too_slow","too_fast"].map(function(k){
       return '<button type="button" class="pill" data-act="fb" data-v="'+k+'" aria-pressed="'+(R.feedback.indexOf(k)>=0)+'">'+t(k)+"</button>";}).join("")+"</div>"
-    +'<textarea class="area" data-act="overall" placeholder="'+t("overallPh")+'">'+esc(R.overall)+"</textarea>"
+    +overall
     +'<div class="label" style="margin-top:16px">'+t("next")+'</div><div class="next">'+["again","enough","exit"].map(function(k){
       return '<button type="button" class="pill" data-act="next" data-v="'+k+'" aria-pressed="'+(R.next===k)+'">'+t(k)+"</button>";}).join("")+"</div>");
 
@@ -527,19 +534,21 @@ function buildReturn(){
   if(proposals.some(function(p){return p.shown===false;})) out.push(t("rExpanded")+c+t(R.expanded?"yes":"no"));
   if(R.observations!=null && R.observations.trim()!==String(S.observations||"").trim()) out.push(t("rObservations")+c+flat(R.observations));
   if(R.overall.trim()) out.push(t("rOverall")+c+flat(R.overall));
-  out.push(t("rNext")+c+t(R.next));
+  if(S.round!==1) out.push(t("rNext")+c+t(R.next));
   return out.join("\n");
 }
 function refresh(){
   var ta=document.getElementById("retText"); if(ta){ta.value=buildReturn(); grow(ta);}
-  var done=0;
+  var done=0, total=0;
   proposals.forEach(function(p){
     var touched=!!(R.choose[p.id] || (R.marks[p.id]||[]).length || (R.notes[p.id]||"").trim());
     if(touched) done++;
+    /* Items held back do not count until they have been opened. */
+    if(touched || p.shown!==false || R.expanded) total++;
     var el=app.querySelector('[data-card="'+cssq(p.id)+'"]'); if(el) el.classList.toggle("touched",touched);
   });
   var pr=document.getElementById("prog");
-  if(pr && !phase) pr.textContent=(proposals.length?t("progress",{a:done,b:proposals.length}):"")+(MODE==="picker"?"　"+t("saveHint"):"");
+  if(pr && !phase) pr.textContent=(total?t("progress",{a:done,b:total}):"")+(MODE==="picker"?"　"+t("saveHint"):"");
 }
 
 /* ---------- events ---------- */
@@ -624,24 +633,42 @@ function submitReturn(btn){
 /* The server only runs while the agent is waiting. When it is not there, the
    return stays pending and is delivered as soon as the agent comes back. */
 function deliver(){
+  if(gone) return;
   fetch("return",{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8","X-FA-Id":PAGE.id},body:buildReturn()})
     .then(function(r){
+      setPending(false);
       if(r.status===409){say("other",t("otherProject")); openManual(); return;}
       if(!r.ok){say("",""); refresh(); openManual(t("submitFail")); return;}
       say("sent",t("saved")+" "+t("waiting"));
     },function(){
-      if(phase!=="pending") say("pending",t("pending"));
-      setTimeout(function(){if(phase==="pending") deliver();},3000);
+      /* Remembered outside this tab too, so a reloaded or newly opened page carries on. */
+      if(phase!=="pending"){setPending(true); say("pending",t("pending"));}
+      setTimeout(function(){if(phase==="pending") deliver();},2000);
     });
 }
 /* An open page keeps looking for the next round. This also tells a new run of
    the server that a page is already open, so it does not open another. */
-function watch(){
-  if(watching) return; watching=true;
-  setInterval(function(){
-    fetch("stamp",{headers:{"X-FA-Id":PAGE.id}}).then(function(r){return r.ok?r.json():null;})
-      .then(function(k){if(k && k.stamp!==PAGE.stamp && phase!=="pending" && phase!=="sending") location.reload();}).catch(function(){});
-  },3000);
+function poll(){
+  if(gone) return;
+  fetch("stamp",{headers:{"X-FA-Id":PAGE.id}}).then(function(r){return r.ok?r.json():null;})
+    .then(function(k){if(k && k.stamp!==PAGE.stamp && phase!=="pending" && phase!=="sending") location.reload();}).catch(function(){});
+}
+function live(){
+  setInterval(poll,3000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden) poll();});
+  var waiting=false; try{waiting=!!localStorage.getItem(PKEY);}catch(e){}
+  if(waiting){say("sending",t("sending")); deliver();}
+  /* One live page per project. Browsers slow hidden tabs down, so now and then
+     the server opens a second one; the older page then says so and stops. */
+  if(window.BroadcastChannel && PAGE.id){
+    var born=Date.now()+Math.random(), bc=new BroadcastChannel("frame-align:"+PAGE.id);
+    bc.onmessage=function(e){
+      if(!(e.data>born)) return;
+      gone=true; bc.close();
+      app.innerHTML='<div class="err"><h1>'+t("movedTitle")+"</h1><p>"+t("movedBody")+"</p></div>";
+    };
+    bc.postMessage(born);
+  }
 }
 function copyReturn(btn){
   var text=buildReturn(), ta=document.getElementById("retText"), label=btn.textContent;
@@ -653,7 +680,7 @@ function copyReturn(btn){
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok,fail); else fail();
 }
 render();
-if(MODE==="server") watch();
+if(MODE==="server") live();
 })();
 </script>
 </body>

@@ -26,22 +26,25 @@ while i < len(args):
         port = int(args[i])
     elif args[i] == "--wait":
         i += 1
-        wait = float(args[i])
+        try:
+            wait = float(args[i])
+        except (IndexError, ValueError):
+            wait = 0
     elif args[i] == "--no-open":
         open_page = False
     else:
         state_dir = args[i]
     i += 1
 state_dir = os.path.abspath(state_dir)
+# The wait is always finite: nine minutes unless told otherwise, an hour at most.
+wait = min(wait if wait > 0 else 540.0, 3600.0)
 PAGE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "page.html")
 STATE = os.path.join(state_dir, "state.js")
 RETURNS = os.path.join(state_dir, "returns")
 SERVER_FILE = os.path.join(state_dir, "server.json")
 MAX_BODY = 1024 * 1024
 FIRST_LINE = re.compile(r"^\[frame-align\] round (\d+)\s*$")
-RETURN_FILE = re.compile(r"^round-\d+\.txt$")
 TEXT = "text/plain; charset=utf-8"
-started = time.time()
 
 # The address and the key stay the same from one run to the next, so a page
 # left open can reach the next run and no other project's server. Each
@@ -65,7 +68,6 @@ ports += [p for p in range(first, first + 21) if p not in ports]
 
 page_seen = False
 lock = threading.Lock()
-ended = False
 
 
 def say(text):
@@ -75,11 +77,36 @@ def say(text):
 
 
 def finish(text):
-    # Stopping must not depend on anyone still listening to the output.
+    """The run ends when the user submits, or when the wait is over.
+    Stopping must not depend on anyone still listening to the output."""
+    with lock:
+        try:
+            say(text)
+        finally:
+            os._exit(0)
+
+
+def returned(name, text):
+    return "frame-align return: %s/returns/%s\n%s" % (os.path.basename(state_dir), name, text.rstrip())
+
+
+def waiting_return():
+    """A return for the state now on the page may already be on disk: an
+    earlier run took it after the agent had stopped listening."""
     try:
-        say(text)
-    finally:
-        os._exit(0)
+        with open(STATE, encoding="utf-8") as f:
+            m = re.search(r'"round"\s*:\s*(\d+)', f.read())
+        if not m:
+            return None
+        name = "round-%d.txt" % int(m.group(1))
+        path = os.path.join(RETURNS, name)
+        if os.stat(path).st_mtime <= os.stat(STATE).st_mtime:
+            return None
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        return returned(name, text) if FIRST_LINE.match(text.split("\n")[0]) else None
+    except (OSError, ValueError):
+        return None
 
 
 def stamp():
@@ -87,35 +114,6 @@ def stamp():
         return int(os.stat(STATE).st_mtime * 1000)
     except OSError:
         return 0
-
-
-def check():
-    """End the run when a return newer than its start is on disk, however it
-    got there, or when the wait is over."""
-    global ended
-    with lock:
-        if ended:
-            return
-        newest, at = None, started - 1.5
-        try:
-            for name in os.listdir(RETURNS):
-                if RETURN_FILE.match(name):
-                    t = os.stat(os.path.join(RETURNS, name)).st_mtime
-                    if t > at:
-                        newest, at = name, t
-        except OSError:
-            pass
-        if newest:
-            ended = True
-            try:
-                with open(os.path.join(RETURNS, newest), encoding="utf-8") as f:
-                    text = f.read()
-            except OSError:
-                text = ""
-            finish("frame-align return: %s/returns/%s\n%s" % (os.path.basename(state_dir), newest, text.rstrip()))
-        if time.time() - started > wait:
-            ended = True
-            finish("frame-align: no return yet. The page server has stopped. Run this again when the user is back.")
 
 
 class Server(ThreadingHTTPServer):
@@ -228,7 +226,7 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             return self.reply(500, TEXT, "could not write the return file")
         self.reply(200, "application/json", json.dumps({"ok": True, "file": os.path.basename(state_dir) + "/returns/" + name}))
-        check()
+        finish(returned(name, text))
 
 
 def take_over(p):
@@ -243,6 +241,10 @@ def take_over(p):
         pass
     time.sleep(0.4)
 
+
+already = waiting_return()
+if already:
+    finish("frame-align page: http://127.0.0.1:%d/\n%s" % (ports[0], already))
 
 server = None
 for p in ports:
@@ -276,27 +278,28 @@ if not os.path.exists(STATE):
 say("frame-align page: " + url)
 
 
-def watch():
-    opened = not open_page
-    while True:
-        time.sleep(0.7)
+def open_browser():
+    # A page left open from the last round finds this server by itself.
+    # Only when none shows up is a new one opened. The first run opens at once.
+    time.sleep(8 if known.get("key") else 0.3)
+    if not page_seen:
         try:
-            check()
-        except BaseException:
-            os._exit(1)
-        # A page left open from the last round finds this server by itself.
-        # Only when none shows up is a new one opened.
-        if not opened and time.time() - started > 4:
-            opened = True
-            if not page_seen:
-                try:
-                    import webbrowser
-                    webbrowser.open(url)
-                except Exception:
-                    pass
+            import webbrowser
+            webbrowser.open(url)
+        except Exception:
+            pass
 
 
-threading.Thread(target=watch, daemon=True).start()
+def give_up():
+    finish("frame-align: no return yet. The page server has stopped. Run this again when the user is back.")
+
+
+# The wait has a timer of its own, so nothing else can hold it up.
+timer = threading.Timer(wait, give_up)
+timer.daemon = True
+timer.start()
+if open_page:
+    threading.Thread(target=open_browser, daemon=True).start()
 try:
     server.serve_forever()
 except KeyboardInterrupt:
