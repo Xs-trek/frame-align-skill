@@ -169,10 +169,10 @@ zh:{brand:"frame-align",round:"第 {n} 轮",anchor:"你的目标",edit:"修改",
  feedback:"这一轮整体怎么样",overallPh:"还有什么想说的：疑问、不满、想换的方向",next:"下一步",again:"再来一轮",enough:"灵感够了",exit:"框架成立",confirm:"确认出口",back:"还要再改",
  too_much:"输出太多",too_little:"输出太少",too_hard:"太难懂",off_track:"跑偏了",too_slow:"进度太慢",too_fast:"进度太快",
  observations:"关于你的观察记录",observationsHint:"我据此调整给你的内容。写得不对可以直接改。",
- submit:"提交",saveFile:"保存回传文件",saved:"已送达，agent 会接着往下做。",savedFile:"已保存，回到对话里说一声即可。",
- sending:"正在提交…",pending:"已填好，还没送达：agent 现在没在等。回到对话里说一声，它一回来这里就会自动送达。",
+ submit:"提交",saveFile:"保存回传文件",saved:"已送达。",savedFile:"已保存，回到对话里说一声即可。",
+ sending:"正在提交…",pending:"已填好，还没送达。回到对话里说一声，这里就会自动送达，不用再点提交。",
  otherProject:"这个地址现在是另一个项目的页面。回到对话里告诉 agent；这里填的内容可以用下面的手动复制带走。",
- saveHint:"请保存到项目的 .frame-align/returns/ 目录",waiting:"新一轮准备好后，这个页面会自己刷新。",submitFail:"没能保存。回到对话里告诉 agent，或者用下面的手动复制。",
+ saveHint:"请保存到项目的 .frame-align/returns/ 目录",waiting:"新一轮准备好后，这个页面会自己刷新。agent 没有接着往下做的话，回对话里说一声。",submitFail:"没能保存。回到对话里告诉 agent，或者用下面的手动复制。",
  manual:"手动复制（备用）",retHint:"只有在没法保存文件时才需要：复制下面的内容，贴回对话。",copy:"复制回传",copied:"已复制，回到对话里粘贴",copyFail:"复制失败，请手动选中下面的文字复制",
  progress:"已回应 {a} / {b} 条",
  rAnchor:"锚点",rUnchanged:"未改",rUnderstanding:"理解",rBackground:"背景",rChoose:"选",rNote:"备注",rFeedback:"整轮反馈",rExpanded:"展开过收起的内容",
@@ -188,10 +188,10 @@ en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"D
  feedback:"How was this round overall",overallPh:"Anything else: questions, complaints, a different direction",next:"Next",again:"Another round",enough:"Enough ideas",exit:"Framework holds",confirm:"Confirm exit",back:"Not yet",
  too_much:"Too much output",too_little:"Too little output",too_hard:"Too hard to follow",off_track:"Off track",too_slow:"Too slow",too_fast:"Too fast",
  observations:"Notes about you",observationsHint:"I adjust what I show you based on these. Edit anything that is wrong.",
- submit:"Submit",saveFile:"Save return file",saved:"Delivered. The agent carries on from here.",savedFile:"Saved. Go back to the conversation and say so.",
- sending:"Submitting…",pending:"Filled in, not delivered yet: the agent is not waiting right now. Say so in the conversation, and this page delivers by itself as soon as the agent is back.",
+ submit:"Submit",saveFile:"Save return file",saved:"Delivered.",savedFile:"Saved. Go back to the conversation and say so.",
+ sending:"Submitting…",pending:"Filled in, not delivered yet. Say so in the conversation and this page delivers by itself; no need to press Submit again.",
  otherProject:"This address now shows another project. Tell the agent in the conversation. What you filled in here can be taken along with manual copy below.",
- saveHint:"Save it into the project's .frame-align/returns/ folder",waiting:"This page refreshes by itself when the next round is ready.",submitFail:"Could not save. Tell the agent in the conversation, or use manual copy below.",
+ saveHint:"Save it into the project's .frame-align/returns/ folder",waiting:"This page refreshes by itself when the next round is ready. If the agent has not picked it up, say so in the conversation.",submitFail:"Could not save. Tell the agent in the conversation, or use manual copy below.",
  manual:"Manual copy (fallback)",retHint:"Only needed when the file cannot be saved: copy the text below and paste it into the conversation.",copy:"Copy return",copied:"Copied. Paste it into the conversation",copyFail:"Copy failed. Select the text below and copy it manually",
  progress:"Responded to {a} of {b}",
  rAnchor:"Anchor",rUnchanged:"unchanged",rUnderstanding:"Understanding",rBackground:"Background",rChoose:"choose",rNote:"note",rFeedback:"Round feedback",rExpanded:"Opened collapsed items",
@@ -306,7 +306,7 @@ try{var saved=JSON.parse(localStorage.getItem(KEY)||"null"); if(saved) Object.as
 var MODE=/^http/.test(location.protocol)?"server":(window.showSaveFilePicker?"picker":"copy");
 /* The server tells the page which project it belongs to and how fresh its state is. */
 var PAGE=window.FRAME_ALIGN_PAGE||{id:"",stamp:0};
-/* "" not submitted; "sending"; "pending" submitted while no agent is waiting; "sent" delivered; "other" the address changed hands. */
+/* "" not submitted; "sending"; "pending" submitted while the page server is not running; "sent" delivered; "other" the address changed hands. */
 var phase="", gone=false, PKEY=KEY+":pending";
 function setPending(on){try{if(on) localStorage.setItem(PKEY,"1"); else localStorage.removeItem(PKEY);}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(R));}catch(e){} if(phase==="sent") phase=""; refresh();}
@@ -631,8 +631,8 @@ function submitReturn(btn){
       .catch(function(e){if(e && e.name==="AbortError") return; openManual(t("submitFail"));});
   }else{ openManual(); copyReturn(btn); }
 }
-/* The server only runs while the agent is waiting. When it is not there, the
-   return stays pending and is delivered as soon as the agent comes back. */
+/* The server runs for a few minutes per round. When it is not there, the
+   return stays pending and is delivered the next time it runs. */
 function deliver(){
   if(gone) return;
   fetch("return",{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8","X-FA-Id":PAGE.id},body:buildReturn()})
