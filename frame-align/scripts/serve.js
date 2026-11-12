@@ -81,6 +81,10 @@ const server = http.createServer((req, res) => {
     send(res, 200, TEXT, "ok");
     return finish("frame-align: replaced by a newer run for this project.");
   }
+  if (req.method === "POST" && url === "/pause") {
+    send(res, 200, TEXT, "ok");
+    return finish("frame-align: paused. The user is taking a break. Do not go on. When they are back and say so, run this again.");
+  }
   if (req.method === "GET" && url === "/stamp") {
     return fs.stat(stateFile, (err, st) => send(res, 200, "application/json", JSON.stringify({ stamp: err ? 0 : Math.floor(st.mtimeMs) })));
   }

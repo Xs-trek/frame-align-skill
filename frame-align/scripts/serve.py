@@ -223,6 +223,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.split("?")[0] == "/quit":
             self.reply(200, TEXT, "ok")
             finish("frame-align: replaced by a newer run for this project.")
+        if self.path.split("?")[0] == "/pause":
+            self.reply(200, TEXT, "ok")
+            finish("frame-align: paused. The user is taking a break. Do not go on. When they are back and say so, run this again.")
         if self.path.split("?")[0] != "/return":
             return self.reply(404, TEXT, "not found")
         own = self.own_port()
