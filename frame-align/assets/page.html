@@ -167,7 +167,7 @@ zh:{brand:"frame-align",round:"第 {n} 轮",anchor:"你的目标",edit:"修改",
  framework:"框架现状",confirmed:"已确认",open:"待定",disputed:"有分歧",stale:"依据已变",reopen:"重开",notePh:"备注",
  source:"来源",recommend:"推荐",pick:"选这个",expand:"展开",collapse:"收起",figureFail:"这张图没能画出来，请告诉 agent。",
  keep:"留着",drop:"不要",more:"多来点",accept:"接受",reject:"不接受",explain:"解释",verify:"去核实",wrong:"不对",take_over:"我来定",unclear:"还是没懂",
- feedback:"这一轮整体怎么样",overallPh:"还有什么想说的：疑问、不满、想换的方向",next:"下一步",again:"再来一轮",enough:"灵感够了",exit:"框架成立",
+ feedback:"这一轮整体怎么样",overallPh:"还有什么想说的：疑问、不满、想换的方向",next:"下一步",again:"再来一轮",enough:"灵感够了",exit:"框架成立",confirm:"确认出口",back:"还要再改",
  too_much:"输出太多",too_little:"输出太少",too_hard:"太难懂",off_track:"跑偏了",too_slow:"进度太慢",too_fast:"进度太快",
  observations:"关于你的观察记录",observationsHint:"我据此调整给你的内容。写得不对可以直接改。",
  submit:"提交",saveFile:"保存回传文件",saved:"已送达，agent 会接着往下做。",savedFile:"已保存，回到对话里说一声即可。",
@@ -186,7 +186,7 @@ en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"D
  framework:"Framework so far",confirmed:"Confirmed",open:"Open",disputed:"Disputed",stale:"Basis changed",reopen:"Reopen",notePh:"Note",
  source:"Source",recommend:"Recommended",pick:"Choose",expand:"Show more",collapse:"Show less",figureFail:"This figure could not be drawn. Tell the agent.",
  keep:"Keep",drop:"Drop",more:"More like this",accept:"Accept",reject:"Reject",explain:"Explain",verify:"Verify",wrong:"Not right",take_over:"I will decide",unclear:"Still unclear",
- feedback:"How was this round overall",overallPh:"Anything else: questions, complaints, a different direction",next:"Next",again:"Another round",enough:"Enough ideas",exit:"Framework holds",
+ feedback:"How was this round overall",overallPh:"Anything else: questions, complaints, a different direction",next:"Next",again:"Another round",enough:"Enough ideas",exit:"Framework holds",confirm:"Confirm exit",back:"Not yet",
  too_much:"Too much output",too_little:"Too little output",too_hard:"Too hard to follow",off_track:"Off track",too_slow:"Too slow",too_fast:"Too fast",
  observations:"Notes about you",observationsHint:"I adjust what I show you based on these. Edit anything that is wrong.",
  submit:"Submit",saveFile:"Save return file",saved:"Delivered. The agent carries on from here.",savedFile:"Saved. Go back to the conversation and say so.",
@@ -201,7 +201,9 @@ en:{brand:"frame-align",round:"Round {n}",anchor:"Your goal",edit:"Edit",done:"D
  errTitle:"No data for this round",errBody:"This page needs state.js in the same folder. Go back to the conversation and tell the agent."}
 };
 var lang = (S && S.lang) || ((navigator.language||"zh").slice(0,2)==="zh" ? "zh" : "en");
-var L = Object.assign({}, DICT[lang] || DICT.en, (S && S.labels) || {});
+var L = Object.assign({}, DICT[lang] || DICT.en);
+/* Labels supplied with the state are plain words. Characters that could break the page are dropped. */
+if(S && S.labels) for(var lk in S.labels) L[lk]=String(S.labels[lk]).replace(/[<>"]/g,"");
 document.documentElement.lang = lang;
 function t(k,v){var s=L[k]==null?k:L[k]; if(v) for(var x in v) s=s.replace("{"+x+"}",v[x]); return s;}
 
@@ -299,7 +301,7 @@ var proposals=(S.proposals||[]), nodes=(S.nodes||[]), delegated=(S.delegated||[]
 /* Saved responses belong to one idea and one round. Another project served on the same address must not pick them up. */
 function hash(s){var h=5381; s=String(s); for(var i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36);}
 var KEY="frame-align:"+hash((S.anchor||"")+"|"+proposals.map(function(p){return p.id;}).join(","))+":"+S.round;
-var R={marks:{},notes:{},choose:{},take:{},reopen:{},nodeNotes:{},feedback:[],overall:"",next:"again",
+var R={marks:{},notes:{},choose:{},take:{},reopen:{},nodeNotes:{},feedback:[],overall:"",next:S.exit_check?"":"again",
        anchor:null,understanding:null,background:"",bg:[],expanded:false,observations:null};
 try{var saved=JSON.parse(localStorage.getItem(KEY)||"null"); if(saved) Object.assign(R,saved);}catch(e){}
 var MODE=/^http/.test(location.protocol)?"server":(window.showSaveFilePicker?"picker":"copy");
@@ -472,7 +474,7 @@ function render(){
   else h+=section("",t("feedback"),null,"",'<div class="chips">'+["too_much","too_little","too_hard","off_track","too_slow","too_fast"].map(function(k){
       return '<button type="button" class="pill" data-act="fb" data-v="'+k+'" aria-pressed="'+(R.feedback.indexOf(k)>=0)+'">'+t(k)+"</button>";}).join("")+"</div>"
     +overall
-    +'<div class="label" style="margin-top:16px">'+t("next")+'</div><div class="next">'+["again","enough","exit"].map(function(k){
+    +'<div class="label" style="margin-top:16px">'+t("next")+'</div><div class="next">'+(S.exit_check?["confirm","back"]:["again","enough","exit"]).map(function(k){
       return '<button type="button" class="pill" data-act="next" data-v="'+k+'" aria-pressed="'+(R.next===k)+'">'+t(k)+"</button>";}).join("")+"</div>");
 
   if(S.observations){
@@ -509,7 +511,8 @@ function grow(el){
 function growAll(root){(root||app).querySelectorAll("textarea").forEach(grow);}
 
 /* ---------- return text ---------- */
-function flat(s){return String(s).trim().replace(/\s*\n+\s*/g," / ");}
+/* Text of several lines keeps its lines. Continuation lines are indented, so every other line still starts with an id. */
+function flat(s){return String(s).trim().replace(/[ \t]*\r?\n\s*/g,"\n  ");}
 function buildReturn(){
   var out=["[frame-align] round "+S.round], c=t("colon"), b=t("bar");
   out.push(t("rAnchor")+c+(R.anchor!=null && R.anchor.trim()!==String(S.anchor||"").trim() ? flat(R.anchor) : t("rUnchanged")));
@@ -534,7 +537,7 @@ function buildReturn(){
   if(proposals.some(function(p){return p.shown===false;})) out.push(t("rExpanded")+c+t(R.expanded?"yes":"no"));
   if(R.observations!=null && R.observations.trim()!==String(S.observations||"").trim()) out.push(t("rObservations")+c+flat(R.observations));
   if(R.overall.trim()) out.push(t("rOverall")+c+flat(R.overall));
-  if(S.round!==1) out.push(t("rNext")+c+t(R.next));
+  if(S.round!==1 && R.next) out.push(t("rNext")+c+t(R.next));
   return out.join("\n");
 }
 function refresh(){

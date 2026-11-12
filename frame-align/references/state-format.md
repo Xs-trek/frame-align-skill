@@ -15,7 +15,7 @@
 
 第一次创建目录时告诉用户一句：值得纳入版本管理的是 `state.js`、`log.md`、`rework.md` 和框架文档；`returns/` 会越积越多，可以忽略，`server.json` 只对本机有意义，也应忽略；`observations.md` 记的是关于他本人的观察，是否纳入由他定。
 
-原则：需要被页面读取、需要稳定编号的，放进状态；需要直接进入你的上下文、需要用户手改的，用文本。状态的外壳只有少数几个字段，正文一律是自由文本，不要为了套格式而削掉内容。
+状态的外壳只有少数几个字段，正文一律是自由文本，不要为了套格式而削掉内容。
 
 ## state.js
 
@@ -67,7 +67,7 @@ window.FRAME_ALIGN_STATE = {
 };
 ```
 
-除了开头的赋值和结尾的分号，其余按 JSON 写。读它时去掉这两处就是 JSON。
+除了开头的赋值和结尾的分号，其余按 JSON 写。
 
 ### 外壳
 
@@ -80,6 +80,7 @@ window.FRAME_ALIGN_STATE = {
 - `this_round`：页面上"本轮在做什么"那一两句。
 - `sources[]`：被你当作依据的文件。`fingerprint` 只填工具给出的值，拿不到就留空，见 `discipline.md`。
 - `exit`：出口时填 `{ "round": 7, "time": "…", "commit": "…" }`，不是 git 仓库就不填 `commit`。
+- `exit_check`：可选。出口检查那一页写 `true`，页面上的"下一步"换成确认出口和还要再改。
 - `sections`：可选。页面中间怎样组合，见 `page-contract.md`。
 - `background_options`：可选，只在第 1 轮有用。几个与这个项目相关的经历，供他点选。
 - `observations`：把 `observations.md` 的内容放一份在这里，页面才能显示。
@@ -150,7 +151,7 @@ window.FRAME_ALIGN_STATE = {
 
 ## returns/
 
-每轮的回传存成 `round-N.txt`，格式见 `page-contract.md`。原样保留，不要改写。他在对话里亲手写的、与本轮有关的话，追加到文件末尾，注明是对话里说的。
+每轮的回传存成 `round-N.txt`，格式见 `page-contract.md`。原样保留，不要改写，也不要往里加东西。
 
 ## 框架文档
 

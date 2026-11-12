@@ -105,7 +105,7 @@ Accept and Reject exclude each other, as do Keep and Drop. Other marks can be co
 | **Framework so far** | A bar showing how many parts are confirmed, open or disputed, then one tile per part. Click a tile to read it and leave a note. **Reopen** turns a confirmed part back to open. A "Basis changed" flag means a file it relied on has changed. |
 | **How was this round overall** | Six optional chips: too much output, too little output, too hard to follow, off track, too slow, too fast. The agent adjusts the next round accordingly. The first round has neither this row nor **Next**, only the large text box. |
 | The large text box | Anything not covered above: questions, complaints, a different direction. |
-| **Next** | Another round continues. Enough ideas tells the agent to stop offering directions and start filling in and narrowing down. Framework holds starts the exit check. |
+| **Next** | Another round continues. Enough ideas tells the agent to stop offering directions and start filling in and narrowing down. Framework holds starts the exit check. On the exit check page this becomes Confirm exit and Not yet; nothing counts as confirmed until you press one. |
 | **Notes about you** | What the agent has observed about how you work, which it uses to adjust what it shows. Edit anything that is wrong. |
 
 ### Submitting
@@ -125,7 +125,7 @@ Copy the `frame-align/` folder into your agent's skills directory.
 - **Claude Code**: `~/.claude/skills/frame-align/` for all projects, or `.claude/skills/frame-align/` inside one project. Invoke it with `/frame-align`.
 - **Other agents that support Agent Skills**: use that agent's skills directory and its way of invoking a skill by name.
 
-The page server needs Node.js or Python 3 on the machine and has no other dependencies. It does not stay running: it runs only for the round in which the agent is waiting for you, exits as soon as you submit, and exits by itself after nine minutes at most. It listens on 127.0.0.1 only, hands the state only to the page it served itself, and accepts submissions only from that page. A project keeps the same address every time, recorded in `.frame-align/server.json`. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
+The page server needs Node.js or Python 3 on the machine and has no other dependencies. It does not stay running: it runs only for the round in which the agent is waiting for you, exits as soon as you submit, and exits by itself after nine minutes at most. It listens on 127.0.0.1 only, hands the state only to the page it served itself, and accepts submissions only from that page. A project keeps the same address every time, recorded in `.frame-align/server.json`. The agent runs the page command once per round; choose not to be asked again the first time it requests it, and you will not have to approve it every round. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
 
 The skill is meant to be invoked manually.
 
