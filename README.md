@@ -13,7 +13,7 @@ The skill is judged by one thing: whether the user reaches alignment with less e
 Early design draft.
 
 - The skill instructions are written.
-- The page is prebuilt, so it looks the same under every model. A small local server, bundled with the skill, runs once per round in the background: it opens the page, waits a few minutes for you to submit, stores the submission, and exits. The agent does not sit waiting meanwhile, and no process is left running between rounds.
+- The page is prebuilt, so it looks the same under every model. A small local server, bundled with the skill, runs once per round in the background: it opens the page, waits a few minutes for you to submit, stores the submission, and exits. The agent does not poll it meanwhile, and no process is left running between rounds.
 - The page and both server scripts have been exercised with sample data in a browser. The skill as a whole has been run on a single use case with no obvious problems; more cases and other agents are still to be verified.
 
 The skill instructions are written in Chinese. Pages follow the language the user writes in.
@@ -32,7 +32,7 @@ Its answer is to fix the shape of the loop and leave the content of the loop to 
 ## How it works
 
 1. **Read before asking.** The agent reads whatever it can reach on its own, then restates the user's need in its own words.
-2. **A round.** The agent explores, writes state to `.frame-align/state.js`, and starts the page command in the background, which opens the page in the agent's built-in browser or in your own. Then the agent ends its turn: it does not wait or poll while you read. The user clicks marks, writes notes, and submits. The result is saved to `.frame-align/returns/round-N.txt`. Where the agent's environment wakes it when a background command ends, it carries on by itself. Elsewhere, or when you submit after the page server has stopped, say so in the conversation and the agent collects the result. It then adjusts and writes the next round, and the open page refreshes by itself.
+2. **A round.** The agent explores, writes state to `.frame-align/state.js`, and starts the page command in the background, which opens the page in the agent's built-in browser or in your own. The user clicks marks, writes notes, and submits. The result is saved to `.frame-align/returns/round-N.txt`. Where the agent's environment wakes it when a background command ends (Claude Code does), the agent ends its turn after showing the page and is woken by your submission. Where it does not (Codex, for one), the agent waits once, silently, for a few minutes, and carries on if you submit in that time. It never polls. If you submit after the page server has stopped, say so in the conversation and the agent collects the result. It then adjusts and writes the next round, and the open page refreshes by itself.
 3. **Exit.** The user decides when the framework holds. A short exit check lists what is still unresolved, then the agent writes a framework document, by default `framework/framework.md`.
 
 The skill covers only this alignment before building. It does not manage implementation. If implementation shows the framework needs to change, invoke the skill again and carry on from the existing framework.
@@ -109,7 +109,7 @@ Accept and Reject exclude each other, as do Keep and Drop. Other marks can be co
 
 ### Submitting
 
-- **Submit** saves your responses to `.frame-align/returns/round-N.txt`. When the bar at the bottom says "Delivered", the result is stored. In environments that wake the agent it carries on by itself; if it does not, say so in the conversation.
+- **Submit** saves your responses to `.frame-align/returns/round-N.txt`. When the bar at the bottom says "Delivered", the agent normally carries on by itself; if it does not, say so in the conversation.
 - When the bar says "Filled in, not delivered yet", the page server has already stopped, usually because you took a while. Say so in the conversation and the page delivers the result by itself. You do not have to press Submit again.
 - After the page server has stopped, the page can still be read and filled in.
 - The rest of the time the bar shows how many cards you have responded to.
@@ -124,7 +124,7 @@ Copy the `frame-align/` folder into your agent's skills directory.
 - **Claude Code**: `~/.claude/skills/frame-align/` for all projects, or `.claude/skills/frame-align/` inside one project. Invoke it with `/frame-align`.
 - **Other agents that support Agent Skills**: use that agent's skills directory and its way of invoking a skill by name.
 
-The page server needs Node.js or Python 3 on the machine and has no other dependencies. It does not stay running: each round it runs in the background, exits as soon as you submit, and exits by itself after nine minutes at most. The agent is idle meanwhile. It listens on 127.0.0.1 only, hands the state only to the page it served itself, and accepts submissions only from that page. A project keeps the same address every time, recorded in `.frame-align/server.json`. The agent runs the page command once or twice per round; choose not to be asked again the first time it requests it, and you will not have to approve it every round. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
+The page server needs Node.js or Python 3 on the machine and has no other dependencies. It does not stay running: each round it runs in the background, exits as soon as you submit, and exits by itself after nine minutes at most. The agent does not poll it. It listens on 127.0.0.1 only, hands the state only to the page it served itself, and accepts submissions only from that page. A project keeps the same address every time, recorded in `.frame-align/server.json`. The agent runs the page command once or twice per round; choose not to be asked again the first time it requests it, and you will not have to approve it every round. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
 
 The skill is meant to be invoked manually.
 
