@@ -13,7 +13,7 @@ The skill is judged by one thing: whether the user reaches alignment with less e
 Early design draft.
 
 - The skill instructions are written.
-- The page is prebuilt, so it looks the same under every model. A small local server, bundled with the skill, serves it and saves each submission to a file that the agent reads on the next round.
+- The page is prebuilt, so it looks the same under every model. A small local server, bundled with the skill, runs once per round: it opens the page, waits for you to submit, hands the submission to the agent, and exits. No process is left running between rounds.
 - The page and both server scripts have been exercised with sample data in a browser. The skill as a whole has not been run through a complete alignment yet.
 
 The skill instructions are written in Chinese. Pages follow the language the user writes in.
@@ -32,7 +32,7 @@ Its answer is to fix the shape of the loop and leave the content of the loop to 
 ## How it works
 
 1. **Read before asking.** The agent reads whatever it can reach on its own, then restates the user's need in its own words.
-2. **A round.** The agent explores and writes state to `.frame-align/state.js`. The prebuilt page shows it. The user clicks marks, writes notes, and submits; the page saves the result to `.frame-align/returns/round-N.txt`. The user says so in the conversation, the agent reads the file, adjusts, and writes the next round. The open page refreshes by itself.
+2. **A round.** The agent explores, writes state to `.frame-align/state.js`, and runs the page command, which opens the page in the browser. The user clicks marks, writes notes, and submits. The result is saved to `.frame-align/returns/round-N.txt` and handed straight to the waiting agent, which adjusts and writes the next round. The open page refreshes by itself. The agent waits a few minutes at most; a user who submits later says so in the conversation, and the page then delivers the result by itself.
 3. **Exit.** The user decides when the framework holds. A short exit check lists what is still unresolved, then the agent writes a framework document, by default `framework/framework.md`.
 4. **Rework.** The framework is not frozen at exit. When implementation exposes something the framework did not foresee, the skill is invoked again and picks up from the rework notes.
 
@@ -70,7 +70,7 @@ It also asks the agent not to flatter and not to hedge: keep facts and opinions 
 
 ## Using the page
 
-The agent gives you a local address. Open it, respond to what you care about, and press **Submit**. Nothing is required: anything you leave untouched simply means you have no opinion on it yet.
+The page opens in your browser by itself. Respond to what you care about and press **Submit**. Nothing is required: anything you leave untouched simply means you have no opinion on it yet.
 
 ### Top of the page
 
@@ -110,8 +110,10 @@ Accept and Reject exclude each other, as do Keep and Drop. Other marks can be co
 
 ### Submitting
 
-- **Submit** saves your responses to `.frame-align/returns/round-N.txt`. Then go back to the conversation and say so, in your own words, adding anything you like. The agent reads the file itself.
-- The bar at the bottom shows how many cards you have responded to. You can submit again in the same round; the last submission wins.
+- **Submit** saves your responses to `.frame-align/returns/round-N.txt` and hands them to the agent. When the bar at the bottom says "Delivered", the agent is already carrying on and you do not need to go back to the conversation. You can still add anything there at any time.
+- When the bar says "Filled in, not delivered yet", the agent has stopped waiting, usually because you took a while. Say so in the conversation and the page delivers the result by itself. You do not have to press Submit again.
+- While the agent is not waiting, the page can still be read and filled in.
+- The rest of the time the bar shows how many cards you have responded to.
 - After you submit, leave the page open. It refreshes by itself when the next round is ready.
 - What you fill in is kept in the browser until the round changes, so a reload does not lose it.
 - **Manual copy (fallback)** at the very bottom is only for the case where saving fails.
@@ -123,7 +125,7 @@ Copy the `frame-align/` folder into your agent's skills directory.
 - **Claude Code**: `~/.claude/skills/frame-align/` for all projects, or `.claude/skills/frame-align/` inside one project. Invoke it with `/frame-align`.
 - **Other agents that support Agent Skills**: use that agent's skills directory and its way of invoking a skill by name.
 
-The page server needs Node.js or Python 3 on the machine and has no other dependencies. It listens on 127.0.0.1 only, hands the state only to the page it served itself, and accepts submissions only from that page. Starting it again for the same project reuses the one already running. It exits after twelve hours without a page load or a submission. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
+The page server needs Node.js or Python 3 on the machine and has no other dependencies. It does not stay running: it runs only for the round in which the agent is waiting for you, exits as soon as you submit, and exits by itself after nine minutes at most. It listens on 127.0.0.1 only, hands the state only to the page it served itself, and accepts submissions only from that page. A project keeps the same address every time, recorded in `.frame-align/server.json`. Without either runtime the page can still be opened as a local file, with a save dialog or copy and paste as the way back.
 
 The skill is meant to be invoked manually.
 
@@ -138,7 +140,7 @@ frame-align/
   SKILL.md                      core loop
   references/
     state-format.md             state, log, observation notes, framework document
-    page-contract.md            starting the page, composing it, marks, return file
+    page-contract.md            running the page, composing it, marks, the return
     discipline.md               sources, re-checking, disputes, exit check
     lenses.md                   stack-neutral checklist of software framework angles
   assets/page.html              the prebuilt page

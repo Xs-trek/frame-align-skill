@@ -8,8 +8,8 @@
 | `log.md` | 决策日志，只追加 |
 | `observations.md` | 对用户行为的观察和他明说的要求，他可见可改 |
 | `rework.md` | 内容填充阶段记下的待回炉事项 |
-| `returns/round-N.txt` | 每轮的回传，由页面写入 |
-| `server.json` | 页面服务的地址，由服务自己写入和清除 |
+| `returns/round-N.txt` | 每轮的回传，由页面命令写入 |
+| `server.json` | 这个项目的页面地址和页面凭据，由页面命令写入 |
 
 框架文档不放在这里。它要让人和后续的 agent 都看得见，默认是工作目录下的 `framework/framework.md`，位置可由用户指定，记在状态的 `doc_path` 里。
 
@@ -150,7 +150,7 @@ window.FRAME_ALIGN_STATE = {
 
 ## returns/
 
-每轮的回传由页面写成 `round-N.txt`，格式见 `page-contract.md`。原样保留，不要改写。他在对话里亲手写的、与本轮有关的话，追加到文件末尾，注明是对话里说的。
+每轮的回传存成 `round-N.txt`，格式见 `page-contract.md`。原样保留，不要改写。他在对话里亲手写的、与本轮有关的话，追加到文件末尾，注明是对话里说的。
 
 ## 框架文档
 
