@@ -14,7 +14,7 @@ Early design draft.
 
 - The skill instructions are written.
 - The page is prebuilt, so it looks the same under every model. A small local server, bundled with the skill, runs once per round: it opens the page, waits for you to submit, hands the submission to the agent, and exits. No process is left running between rounds.
-- The page and both server scripts have been exercised with sample data in a browser. The skill as a whole has not been run through a complete alignment yet.
+- The page and both server scripts have been exercised with sample data in a browser. The skill as a whole has been run on a single use case with no obvious problems; more cases and other agents are still to be verified.
 
 The skill instructions are written in Chinese. Pages follow the language the user writes in.
 
