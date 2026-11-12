@@ -109,6 +109,24 @@ def waiting_return():
         return None
 
 
+def state_problem():
+    """The state is checked before anything is shown, so a slip in an edit is
+    reported to the agent at once instead of reaching the user as a broken page."""
+    try:
+        with open(STATE, encoding="utf-8-sig") as f:
+            src = f.read()
+    except (OSError, ValueError):
+        return "no state.js in %s. Is this the right folder?" % state_dir
+    m = re.match(r"\s*window\.FRAME_ALIGN_STATE\s*=\s*(.*?);?\s*$", src, re.S)
+    if not m:
+        return "state.js must start with: window.FRAME_ALIGN_STATE = "
+    try:
+        json.loads(m.group(1))
+    except ValueError as e:
+        return "state.js is not valid JSON after the assignment. %s." % e
+    return None
+
+
 def stamp():
     try:
         return int(os.stat(STATE).st_mtime * 1000)
@@ -242,6 +260,11 @@ def take_over(p):
     time.sleep(0.4)
 
 
+problem = state_problem()
+if problem:
+    sys.stderr.write("frame-align: %s Fix it and run this again.\n" % problem)
+    sys.exit(1)
+
 already = waiting_return()
 if already:
     finish("frame-align page: http://127.0.0.1:%d/\n%s" % (ports[0], already))
@@ -273,8 +296,6 @@ if not known_port or known.get("key") != KEY:
             f.write("\n")
     except OSError:
         sys.stderr.write("frame-align: could not write %s. Is this the right folder? %s\n" % (SERVER_FILE, state_dir))
-if not os.path.exists(STATE):
-    sys.stderr.write("frame-align: no state.js in %s yet. The page stays empty until it is written.\n" % state_dir)
 say("frame-align page: " + url)
 
 

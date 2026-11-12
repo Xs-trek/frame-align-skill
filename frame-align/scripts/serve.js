@@ -121,6 +121,16 @@ process.stdout.on("error", () => process.exit(0));
 function returned(name, text) {
   return "frame-align return: " + path.basename(dir) + "/returns/" + name + "\n" + text.replace(/\s*$/, "");
 }
+// The state is checked before anything is shown, so a slip in an edit is
+// reported to the agent at once instead of reaching the user as a broken page.
+function stateProblem() {
+  let src;
+  try { src = fs.readFileSync(stateFile, "utf8"); } catch (e) { return "no state.js in " + dir + ". Is this the right folder?"; }
+  const m = /^\uFEFF?\s*window\.FRAME_ALIGN_STATE\s*=\s*([\s\S]*?);?\s*$/.exec(src);
+  if (!m) return "state.js must start with: window.FRAME_ALIGN_STATE = ";
+  try { JSON.parse(m[1]); } catch (e) { return "state.js is not valid JSON after the assignment. " + e.message + "."; }
+  return null;
+}
 // A return for the state now on the page may already be on disk: an earlier
 // run took it after the agent had stopped listening. Hand it over at once.
 function waitingReturn() {
@@ -172,7 +182,6 @@ server.on("listening", () => {
     try { fs.writeFileSync(serverFile, JSON.stringify({ port: known.port > 0 ? known.port : self, key: key }) + "\n", "utf8"); }
     catch (e) { console.error("frame-align: could not write " + serverFile + ". Is this the right folder? " + dir); }
   }
-  if (!fs.existsSync(stateFile)) console.error("frame-align: no state.js in " + dir + " yet. The page stays empty until it is written.");
   console.log("frame-align page: " + url);
   setTimeout(() => finish("frame-align: no return yet. The page server has stopped. Run this again when the user is back."), wait * 1000);
   // A page left open from the last round finds this server by itself.
@@ -181,6 +190,8 @@ server.on("listening", () => {
 });
 process.on("SIGINT", () => process.exit(0));
 process.on("SIGTERM", () => process.exit(0));
+const problem = stateProblem();
+if (problem) { console.error("frame-align: " + problem + " Fix it and run this again."); process.exit(1); }
 const already = waitingReturn();
 if (already) finish("frame-align page: http://127.0.0.1:" + ports[0] + "/\n" + already);
 else server.listen(ports[0], "127.0.0.1");
