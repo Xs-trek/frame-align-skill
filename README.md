@@ -32,7 +32,7 @@ Its answer is to fix the shape of the loop and leave the content of the loop to 
 ## How it works
 
 1. **Read before asking.** The agent reads whatever it can reach on its own, then restates the user's need in its own words.
-2. **A round.** The agent explores, writes state to `.frame-align/state.js`, and runs the page command, which opens the page in the browser. The user clicks marks, writes notes, and submits. The result is saved to `.frame-align/returns/round-N.txt` and handed straight to the waiting agent, which adjusts and writes the next round. The open page refreshes by itself. The agent waits a few minutes at most; a user who submits later says so in the conversation, and the page then delivers the result by itself.
+2. **A round.** The agent explores, writes state to `.frame-align/state.js`, and runs the page command, which opens the page in the agent's built-in browser or in your own. The user clicks marks, writes notes, and submits. The result is saved to `.frame-align/returns/round-N.txt` and handed straight to the waiting agent, which adjusts and writes the next round. The open page refreshes by itself. The agent waits a few minutes at most; a user who submits later says so in the conversation, and the page then delivers the result by itself.
 3. **Exit.** The user decides when the framework holds. A short exit check lists what is still unresolved, then the agent writes a framework document, by default `framework/framework.md`.
 
 The skill covers only this alignment before building. It does not manage implementation. If implementation shows the framework needs to change, invoke the skill again and carry on from the existing framework.
@@ -69,7 +69,7 @@ It also asks the agent not to flatter and not to hedge: keep facts and opinions 
 
 ## Using the page
 
-The page opens in your browser by itself. Respond to what you care about and press **Submit**. Nothing is required: anything you leave untouched simply means you have no opinion on it yet.
+The page opens by itself: in the agent's built-in browser when it has one, otherwise in your own browser. Respond to what you care about and press **Submit**. Nothing is required: anything you leave untouched simply means you have no opinion on it yet.
 
 ### Top of the page
 
